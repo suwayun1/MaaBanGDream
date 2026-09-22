@@ -616,6 +616,7 @@ _RECORDING_KIND_BY_RUN_MODE = {
     "calibration-formal": "calibration-formal",
     "continuous": "continuous",
     "medley": "medley",
+    "fes": "fes",
 }
 
 
