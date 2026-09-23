@@ -15,10 +15,12 @@ from maa.custom_action import CustomAction
 try:
     from ..common_recover import CommonRecover
     from ..foreground_guard import GAME_PACKAGE
+    from ..live_select import LiveSelectFind
     from ..task_reporting import TaskProgress, record_failure_reason
 except ImportError:
     from common_recover import CommonRecover
     from foreground_guard import GAME_PACKAGE
+    from live_select import LiveSelectFind
     from task_reporting import TaskProgress, record_failure_reason
 
 from .difficulty_action import RealtimeDifficultySelect
@@ -37,18 +39,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FES_DPI = 240
 FES_GAME_FPS = 60
 FES_RENDER_QUALITY = "standard"
-# Fes 活动的准备页与协力/单人共用同一布局，难度按钮沿用标准目标点。
+# Fes 活动只有 Easy/Normal/Hard/Expert 四档，没有 Special；
+# 按钮行布局与协力准备页一致（待真机 1280x720 校准）。
 FES_DIFFICULTY_TARGETS = {
     "Easy": (602, 575),
     "Normal": (687, 575),
     "Hard": (769, 575),
     "Expert": (852, 575),
-    "Special": (942, 575),
 }
+# 满员后游戏自动进入最终确认页；匹配超时给出明确失败原因。
+FES_MATCH_TIMEOUT_SECONDS = 300.0
+# 点“准备完”后所有人点完才开演，最长 30 秒倒计时自动开演。
+FES_READY_DEPARTURE_TIMEOUT_SECONDS = 90.0
 
 DEFAULT_SETTINGS: dict[str, object] = {
-    "entry_method": "normal",
-    "room_code": "",
     "difficulty": "Expert",
     "count": 1,
     "debug_recording": False,
@@ -72,6 +76,13 @@ def configure_fes_settings(params: dict[str, object]) -> dict[str, object]:
         if not 0 <= count <= 999:
             raise ValueError("团队演出 Fes 次数必须是0到999的整数，0表示无限")
         candidate["count"] = count
+        difficulty = str(candidate.get("difficulty", "Expert"))
+        if difficulty not in FES_DIFFICULTY_TARGETS:
+            raise ValueError(
+                f"团队演出 Fes 不支持难度 {difficulty}；"
+                f"可选：{'/'.join(FES_DIFFICULTY_TARGETS)}（没有 Special）"
+            )
+        candidate["difficulty"] = difficulty
         _SETTINGS.clear()
         _SETTINGS.update(candidate)
         return dict(_SETTINGS)
@@ -178,6 +189,30 @@ class FesLiveFlow:
             raise InterruptedError("用户已停止任务")
         return self.context.tasker.controller.post_screencap().wait().get()
 
+    def _ocr_box(
+        self,
+        image,
+        expected: str,
+        *,
+        roi: tuple[int, int, int, int] = (0, 0, 1280, 720),
+        threshold: float = 0.4,
+    ):
+        """OCR 查找文本，命中返回 box，否则返回 None。
+
+        不依赖截图模板：识别点全部是界面固定文案，分辨率无关，
+        但阈值与 ROI 仍需真机 1280x720 验收后固化。
+        """
+        from maa.pipeline import JOCR, JRecognitionType
+
+        result = self.context.run_recognition_direct(
+            JRecognitionType.OCR,
+            JOCR(expected=[expected], roi=roi, threshold=threshold),
+            image,
+        )
+        if result and result.hit and result.box:
+            return result.box
+        return None
+
     @staticmethod
     def action_argv(params: dict[str, object]):
         return SimpleNamespace(
@@ -187,19 +222,121 @@ class FesLiveFlow:
     def click(self, point: tuple[int, int]) -> None:
         _maa_click(self.context, point)
 
-    def enter_room(self) -> None:
-        """房间创建/加入的界面识别待真机截图补充。
-
-        骨架阶段此方法只确认现状：任务启动后由 pipeline 导航进入活动，
-        房间流程期望设备已经处于可进入准备页的状态（例如用户已建房或
-        已加入房间）。补充 `resource/image/fes/` 截图模板后，这里负责
-        建房/入房/等待成员的完整自动化。
-        """
-        print(
-            "FesLive room_navigation=pending-screenshots "
-            "expect=prepare-page-reachable",
-            flush=True,
+    def _in_fes_flow(self, image) -> bool:
+        """当前是否已在 Fes 匹配/确认流程中。"""
+        return bool(
+            self._ocr_box(
+                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
+            )
+            or self._ocr_box(
+                image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
+            )
+            or self._ocr_box(image, "匹配中", threshold=0.4)
+            or self._ocr_box(image, "寻找房间", threshold=0.4)
         )
+
+    def _on_home(self, image) -> bool:
+        result = self.context.run_recognition("FesHomeLive", image)
+        return bool(result and result.hit)
+
+    def _navigate_to_entry(self) -> None:
+        """从主页进入团队演出入口：点“演出”→ 选择页 OCR 点“团队演出”。
+
+        复用 pipeline 的 FesHomeLive 模板节点（home_live.png 命中即点其
+        中心）与 LiveSelectFind 动作；多轮之间回主页后由 enter_room 调用，
+        完成 pipeline 导航段的等价重放。
+        """
+        timeout = float(
+            getattr(self, "entry_home_timeout_seconds", 30.0)
+        )
+        deadline = time.monotonic() + timeout
+        entered = False
+        while time.monotonic() < deadline:
+            if self.stopped():
+                raise InterruptedError("用户已停止任务")
+            image = self.capture()
+            result = self.context.run_recognition("FesHomeLive", image)
+            if result and result.hit and result.box:
+                box = result.box
+                self.click(
+                    (int(box.x + box.w // 2), int(box.y + box.h // 2))
+                )
+                time.sleep(1.0)
+                entered = True
+                break
+            time.sleep(0.5)
+        if not entered:
+            raise RuntimeError(
+                f"主页 {timeout:.0f} 秒内未找到“演出”入口"
+                "（home_live 模板未命中，待真机校准）"
+            )
+        argv = SimpleNamespace(custom_action_param=json.dumps({
+            "expected": "团队演出",
+            "roi": [0, 100, 1280, 620],
+            "click": True,
+            "timeout_ms": 15000,
+            "interval_ms": 500,
+            "missing_reason": (
+                "选择演出页未找到团队演出 Fes 入口"
+                "（活动未开放或 OCR 文本待校准）"
+            ),
+        }, ensure_ascii=False))
+        if not LiveSelectFind().run(self.context, argv):
+            raise RuntimeError("团队演出 Fes 入口点击失败")
+        print("FesLive entry_navigation=clicked", flush=True)
+
+    def enter_room(self) -> None:
+        """自动匹配入房（v1 只支持自动匹配，不做创建/加入私人房间）。
+
+        点击活动入口后游戏自动弹出“匹配中”弹窗并寻找房间；房间满员后
+        自动进入「团队演出 最终确认」页，全程无需手动点击。这里只用 OCR
+        等待最终确认页出现：命中即入房成功，超时给出明确失败原因。
+        """
+        timeout = float(
+            getattr(self, "match_timeout_seconds", FES_MATCH_TIMEOUT_SECONDS)
+        )
+        started = time.monotonic()
+        deadline = started + timeout
+        image = self.capture()
+        if not self._in_fes_flow(image) and self._on_home(image):
+            # 多轮之间回主页后由这里重新导航进活动；首轮 pipeline 已点击
+            # 入口或处于页面过渡时（既不在流程也不在主页）直接进等待循环。
+            self._navigate_to_entry()
+        last_state = ""
+        while True:
+            if self.stopped():
+                raise InterruptedError("用户已停止任务")
+            image = self.capture()
+            if self._ocr_box(
+                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
+            ) or self._ocr_box(
+                image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
+            ):
+                print(
+                    "FesLive room=confirmed entry=auto-match "
+                    f"elapsed={time.monotonic() - started:.1f}s",
+                    flush=True,
+                )
+                return
+            if self._ocr_box(image, "匹配中", threshold=0.4) or self._ocr_box(
+                image, "寻找房间", threshold=0.4,
+            ):
+                state = "matching"
+            else:
+                state = "roster-or-loading"
+            if state != last_state:
+                print(
+                    f"FesLive room_state={state} "
+                    f"elapsed={time.monotonic() - started:.1f}s",
+                    flush=True,
+                )
+                last_state = state
+            if time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"进入团队演出后 {timeout:.0f} 秒内未到达最终确认页"
+                    "（自动匹配未完成或房间未满员）"
+                )
+            time.sleep(1.0)
 
     def prepare(self) -> None:
         difficulty = str(self.settings["difficulty"])
@@ -217,9 +354,8 @@ class FesLiveFlow:
             "debug_recording": bool(self.settings["debug_recording"]),
         }
         if difficulty == "Special":
-            # 与协力一致：Special 缺席时显式回退 Expert，后续流程只消费
-            # 实际选中的难度，不能继续拿 Special 谱面演奏。
-            difficulty_params["fallback_difficulties"] = ["Expert"]
+            # Fes 没有 Special；configure 阶段已拦截，这里保留兜底日志。
+            raise ValueError("团队演出 Fes 没有 Special 难度")
         if not RealtimeDifficultySelect().run(
             self.context, self.action_argv(difficulty_params)
         ):
@@ -230,11 +366,9 @@ class FesLiveFlow:
         if run is None or not run.prepared_for_play:
             raise RuntimeError("团队演出 Fes 难度选择成功但缺少本局实际难度证据")
         effective_difficulty = str(run.difficulty)
-        if effective_difficulty != difficulty and not (
-            difficulty == "Special" and effective_difficulty == "Expert"
-        ):
+        if effective_difficulty != difficulty:
             raise RuntimeError(
-                "团队演出 Fes 实际难度不符合回退策略："
+                "团队演出 Fes 实际难度与请求不一致："
                 f"请求 {difficulty}，实际 {effective_difficulty}"
             )
         self.effective_difficulty = effective_difficulty
@@ -259,6 +393,61 @@ class FesLiveFlow:
             f"effective_difficulty={effective_difficulty} "
             "speed_gate=verified",
             flush=True,
+        )
+        self._ready_up_and_wait()
+
+    def _ready_up_and_wait(self) -> None:
+        """点击「准备完」并等待开演：所有人点完即开演，最长 30 秒倒计时
+        自动开演；无论哪种情况，最终确认页都会离开，本方法以页面离开
+        为信号返回，后续交给 RealtimeProfilePlay 等待加载与演奏。
+        """
+        timeout = float(
+            getattr(
+                self,
+                "ready_departure_timeout_seconds",
+                FES_READY_DEPARTURE_TIMEOUT_SECONDS,
+            )
+        )
+        image = self.capture()
+        box = self._ocr_box(
+            image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
+        )
+        if box is None:
+            raise RuntimeError(
+                "最终确认页未找到“准备完”按钮（OCR 未命中，待真机校准 ROI/阈值）"
+            )
+        # box 为 (x, y, w, h) 时点中心；run_recognition_direct 返回结构
+        # 可能是 box-like，按 LiveSelectFind 的用法取 .x/.y/.w/.h。
+        center = (
+            int(box.x + box.w // 2),
+            int(box.y + box.h // 2),
+        )
+        self.click(center)
+        print(
+            "FesLive ready_tapped=true "
+            f"point=({center[0]},{center[1]})",
+            flush=True,
+        )
+        started = time.monotonic()
+        deadline = started + timeout
+        while time.monotonic() < deadline:
+            if self.stopped():
+                raise InterruptedError("用户已停止任务")
+            time.sleep(1.0)
+            image = self.capture()
+            still_on_page = self._ocr_box(
+                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
+            )
+            if still_on_page is None:
+                print(
+                    "FesLive ready_departed=true "
+                    f"elapsed={time.monotonic() - started:.1f}s",
+                    flush=True,
+                )
+                return
+        raise RuntimeError(
+            f"点击准备完后 {timeout:.0f} 秒内未离开最终确认页"
+            "（其他玩家未准备且倒计时未触发）"
         )
 
     def play(self) -> bool:

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- 新增「团队演出 Fes」任务骨架：interface.json 注册任务与难度/次数/诊断选项，`resource/pipeline/fes_live.json` 复用进程冲突守卫、主页恢复、流速门禁和结算上报链路；新增 `agent/realtime/fes_action.py`，演奏委托 `RealtimeProfilePlay`（`run_mode=fes`，录像前缀 `fes`）。次数 0–999、0 为无限，Special 缺席时回退 Expert。活动入口按 OCR 文本「团队演出」识别；房间创建/加入的界面识别待真机截图补充，当前要求启动时设备已处于可进入准备页的状态，未经真机验收。
+- 新增「团队演出 Fes」任务骨架：interface.json 注册任务与难度/次数/诊断选项，`resource/pipeline/fes_live.json` 复用进程冲突守卫、主页恢复、流速门禁和结算上报链路；新增 `agent/realtime/fes_action.py`，演奏委托 `RealtimeProfilePlay`（`run_mode=fes`，录像前缀 `fes`）。次数 0–999、0 为无限；只有 Easy/Normal/Hard/Expert 四档难度，没有 Special。v1 只支持自动匹配入房（不创建/加入私人房间）：匹配中等待房间满员后自动进入最终确认页，OCR 点「准备完」后等全员准备或 30 秒倒计时自动开演；活动入口与多轮回主页后的重导航均按 OCR 文本「团队演出」识别。PGGBM 判定页与结算页复用既有 `collect_result` 推进。难度按钮与门禁坐标待真机 1280×720 校准，未经真机验收不得发布。
 
 ## 2026-09-17（v1.4.3）
 
