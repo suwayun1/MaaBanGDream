@@ -652,6 +652,110 @@ def test_native_start_photogate_ignores_prelude_during_grace():
     ]
 
 
+def test_native_start_gate_policy_fes_blocks_broad_change():
+    from agent.realtime.native_play import resolve_native_start_gate_policy
+
+    fes = resolve_native_start_gate_policy("fes")
+    assert fes.block_broad_change is True
+    assert fes.mode == "fes-playfield-intro"
+    assert fes.stable_duration_ms == 250.0
+    assert fes.grace_ms == 500.0
+
+    single = resolve_native_start_gate_policy("realtime")
+    assert single.block_broad_change is False
+    assert single.mode == "single-playfield-first-note"
+
+    cooperative = resolve_native_start_gate_policy("cooperative")
+    assert cooperative.block_broad_change is False
+    assert cooperative.mode == "cooperative-playfield-confirmed"
+
+
+def _photogate_intro_frames():
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    flash = stable.copy()
+    flash[510:536, :, :] = 60
+    note = stable.copy()
+    note[510:536, 600:750, :] = 45
+    return stable, flash, note
+
+
+def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=500.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable, flash, note = _photogate_intro_frames()
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.frozen is True
+    assert gate.observe(stable, 479 / 60.0) is None
+
+    # 进场画面结束的整带转场不得触发首拍门，且必须保持冻结基线。
+    assert gate.observe(flash, 480 / 60.0) is None
+    assert gate.observe(flash, 481 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.frozen is True
+    assert gate.ignored_prelude_events == 0
+
+    # 闪出帧回归基线，同样不得被当成一次“穿越”。
+    assert gate.observe(stable, 482 / 60.0) is None
+    assert gate.triggered is False
+
+    # 真首音（窄列变化）按插值 + 屏显延迟正常定位。
+    note_score = 3.0 * (150.0 / 1280.0) * 15.0
+    expected = (
+        482 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    )
+    anchor = gate.observe(note, 483 / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_broad_block"] is True
+    assert report["photogate_broad_blocked_events"] == 2
+    assert report["photogate_broad_blocked_events"] == gate.broad_blocked_events
+    assert (
+        [event["event"] for event in report["photogate_events"]].count(
+            "broad-change-blocked"
+        )
+        == 2
+    )
+
+
+def test_single_photogate_intro_flash_behavior_unchanged():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=500.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        playfield_detector=lambda _image: True,
+    )
+    stable, flash, _note = _photogate_intro_frames()
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.observe(stable, 479 / 60.0) is None
+
+    # 单人路径未启用宽列拦截：整带变化仍按原行为触发（opt-in 语义不变）。
+    flash_score = 3.0 * 30.0
+    expected = 479 / 60 + (3.0 / flash_score) * (1 / 60) + 0.190
+    anchor = gate.observe(flash, 480 / 60)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_broad_block"] is False
+    assert report["photogate_broad_blocked_events"] == 0
+
+
 def test_native_start_photogate_rejects_transition_before_playfield():
     gate = NativeStartPhotogate(
         stable_duration_ms=100.0,

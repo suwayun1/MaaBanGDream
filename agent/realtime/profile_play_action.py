@@ -2458,6 +2458,7 @@ class RealtimeProfilePlay(CustomAction):
                         mode=policy.mode,
                         stable_duration_ms=policy.stable_duration_ms,
                         grace_ms=policy.grace_ms,
+                        block_broad_change=policy.block_broad_change,
                     )
                 playfield_monitor = PlayfieldLifecycleMonitor(
                     start_gate=start_gate,

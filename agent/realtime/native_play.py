@@ -35,6 +35,7 @@ class NativeStartGatePolicy:
     mode: str
     stable_duration_ms: float
     grace_ms: float
+    block_broad_change: bool = False
 
 
 def resolve_native_start_gate_policy(run_mode: str | None) -> NativeStartGatePolicy:
@@ -45,6 +46,18 @@ def resolve_native_start_gate_policy(run_mode: str | None) -> NativeStartGatePol
             mode="cooperative-playfield-confirmed",
             stable_duration_ms=120.0,
             grace_ms=500.0,
+        )
+    if normalized == "fes":
+        # Fes 联机在演奏场上多一段进场画面；其结束转场对判定带是整行
+        # 大面积变化，会抢在真首音前触发首拍门，整曲按键恒定提前
+        # （真机实测 Single 全 miss、hold 主体命中、fast/slow=86/0）。
+        # 宽列拦截复用协力弹窗的结构判据，但保持冻结基线：闪进/闪出
+        # 都不触发，由真首音（窄列变化）正常插值定位。
+        return NativeStartGatePolicy(
+            mode="fes-playfield-intro",
+            stable_duration_ms=250.0,
+            grace_ms=500.0,
+            block_broad_change=True,
         )
     return NativeStartGatePolicy(
         mode="single-playfield-first-note",
@@ -215,6 +228,7 @@ class NativeStartPhotogate:
         playfield_detector: Callable[[Any], bool] | None = None,
         popup_detector: Callable[[Any], bool] | None = None,
         suppress_prepare_popup: bool | None = None,
+        block_broad_change: bool = False,
     ) -> None:
         if not 0 <= from_row <= to_row < reference_height:
             raise ValueError("photogate 行范围无效")
@@ -244,6 +258,10 @@ class NativeStartPhotogate:
         if suppress_prepare_popup is None:
             suppress_prepare_popup = str(mode).startswith("cooperative")
         self._popup_gate_enabled = bool(suppress_prepare_popup)
+        # Fes 进场画面转场用同一套宽列结构判据拦截，但不走弹窗检测器，
+        # 恢复策略见 observe 中的粘性分支（保持冻结基线）。
+        self._broad_block_enabled = bool(block_broad_change)
+        self.broad_blocked_events = 0
         self._popup_detector = (
             popup_detector
             if popup_detector is not None
@@ -341,6 +359,8 @@ class NativeStartPhotogate:
             "photogate_trigger_score": self.trigger_score,
             "photogate_trigger_source": self.trigger_source,
             "photogate_last_change_score": self.last_change_score,
+            "photogate_broad_block": self._broad_block_enabled,
+            "photogate_broad_blocked_events": self.broad_blocked_events,
             "photogate_prepare_popup_enabled": self._popup_gate_enabled,
             "photogate_prepare_popup_frames": self.prepare_popup_frames,
             "photogate_prepare_popup_blocked_events": (
@@ -456,7 +476,7 @@ class NativeStartPhotogate:
 
         if (
             change_score >= self._change_threshold
-            and self._popup_gate_enabled
+            and (self._popup_gate_enabled or self._broad_block_enabled)
             and self._frozen_columns is not None
         ):
             # 弹窗缩放出现/消失或背景变暗时，判定带会发生大面积变化；首颗
@@ -472,12 +492,22 @@ class NativeStartPhotogate:
                 (column_change >= self._BROAD_COLUMN_MIN).sum()
             )
             if broad_columns >= self._BROAD_COLUMN_FRACTION * image.shape[1]:
+                self.broad_blocked_events += 1
                 self._record_event(
                     "broad-change-blocked",
                     frame_s,
                     change_score,
                 )
-                self._reset_band_state()
+                if self._popup_gate_enabled:
+                    # 协力弹窗消失后有数秒安静期，可整段重置等重新稳定。
+                    self._reset_band_state()
+                    return None
+                # Fes 进场转场后 0.2s 内就是真首音：保持冻结基线与
+                # last_color（不采信闪帧颜色），仅作废本帧的插值状态。
+                # 闪出帧相对基线为窄列/小幅变化不会触发；真首音帧以
+                # previous_change=None 走 direct，或安静帧后插值定位。
+                self._previous_change = None
+                self._previous_frame_s = frame_s
                 return None
 
         trigger_s: float | None = None
@@ -610,6 +640,7 @@ class NativeMinitouchBackend:
             stable_duration_ms=start_policy.stable_duration_ms,
             grace_ms=start_policy.grace_ms,
             mode=start_policy.mode,
+            block_broad_change=start_policy.block_broad_change,
         )
         self._session_factory = session_factory or native_engine.playback_session
         self._session = self._session_factory(
