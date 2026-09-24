@@ -39,17 +39,25 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FES_DPI = 240
 FES_GAME_FPS = 60
 FES_RENDER_QUALITY = "standard"
-# Fes 活动只有 Easy/Normal/Hard/Expert 四档，没有 Special；
-# 按钮行布局与协力准备页一致（待真机 1280x720 校准）。
+# Fes 活动只有 Easy/Normal/Hard/Expert 四档，没有 Special：UI 上仍有第五槽
+# （实测 (946,574)），按需求 v1 不提供 Special、永不点击该槽。坐标来自雷电
+# 模拟器 1280x720 真机录像 t=34s 霍夫圆实测（整行 y572-574），与协力选曲页
+# DIFFICULTY_TARGETS(715..1180,545) 不同位，不可混用。
 FES_DIFFICULTY_TARGETS = {
-    "Easy": (602, 575),
-    "Normal": (687, 575),
-    "Hard": (769, 575),
-    "Expert": (852, 575),
+    "Easy": (602, 572),
+    "Normal": (684, 574),
+    "Hard": (770, 572),
+    "Expert": (856, 574),
 }
+# 准备页底栏红色「准备完毕」按钮（HSV 实测 bbox 1014,590 218x81 → 中心）。
+FES_READY_POINT = (1123, 630)
+# 中继页底栏红色 OK = 自动匹配（HSV 实测 bbox 916,618 265x56 → 中心）。
+FES_MATCH_OK_POINT = (1048, 646)
+# 底栏「设定」gear（录像实测 ≈(946,648)）。
+FES_GEAR_POINT = (946, 650)
 # 满员后游戏自动进入最终确认页；匹配超时给出明确失败原因。
 FES_MATCH_TIMEOUT_SECONDS = 300.0
-# 点“准备完”后所有人点完才开演，最长 30 秒倒计时自动开演。
+# 点“准备完毕”后所有人点完才开演，最长 30 秒倒计时自动开演。
 FES_READY_DEPARTURE_TIMEOUT_SECONDS = 90.0
 
 DEFAULT_SETTINGS: dict[str, object] = {
@@ -199,8 +207,8 @@ class FesLiveFlow:
     ):
         """OCR 查找文本，命中返回 box，否则返回 None。
 
-        不依赖截图模板：识别点全部是界面固定文案，分辨率无关，
-        但阈值与 ROI 仍需真机 1280x720 验收后固化。
+        识别点全部是界面固定文案，ROI 均来自真机 1280x720 录像实测，
+        分辨率无关。
         """
         from maa.pipeline import JOCR, JRecognitionType
 
@@ -223,16 +231,20 @@ class FesLiveFlow:
         _maa_click(self.context, point)
 
     def _in_fes_flow(self, image) -> bool:
-        """当前是否已在 Fes 匹配/确认流程中。"""
+        """当前是否已在 Fes 中继/匹配/确认流程中（锚点均来自真机录像）。"""
         return bool(
             self._ocr_box(
-                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
+                image, "准备完毕", roi=(700, 500, 580, 220), threshold=0.4,
             )
             or self._ocr_box(
-                image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
+                image, "创建房间", roi=(0, 560, 1280, 160), threshold=0.4,
             )
-            or self._ocr_box(image, "匹配中", threshold=0.4)
-            or self._ocr_box(image, "寻找房间", threshold=0.4)
+            or self._ocr_box(
+                image, "的成员匹配", roi=(0, 500, 1280, 220), threshold=0.4,
+            )
+            or self._ocr_box(
+                image, "请选择难度", roi=(0, 380, 1280, 240), threshold=0.4,
+            )
         )
 
     def _on_home(self, image) -> bool:
@@ -242,9 +254,9 @@ class FesLiveFlow:
     def _navigate_to_entry(self) -> None:
         """从主页进入团队演出入口：点“演出”→ 选择页 OCR 点“团队演出”。
 
-        复用 pipeline 的 FesHomeLive 模板节点（home_live.png 命中即点其
-        中心）与 LiveSelectFind 动作；多轮之间回主页后由 enter_room 调用，
-        完成 pipeline 导航段的等价重放。
+        复用 pipeline 的 FesHomeLive 模板节点（home_live 模板已在真机录像
+        实测 0.99 命中 FesHomeLive 靶区）与 LiveSelectFind 动作；多轮之间
+        回主页后由 enter_room 调用，完成 pipeline 导航段的等价重放。
         """
         timeout = float(
             getattr(self, "entry_home_timeout_seconds", 30.0)
@@ -268,7 +280,7 @@ class FesLiveFlow:
         if not entered:
             raise RuntimeError(
                 f"主页 {timeout:.0f} 秒内未找到“演出”入口"
-                "（home_live 模板未命中，待真机校准）"
+                "（home_live 模板已在真机录像命中，入口可能被弹窗遮挡）"
             )
         argv = SimpleNamespace(custom_action_param=json.dumps({
             "expected": "团队演出",
@@ -288,9 +300,10 @@ class FesLiveFlow:
     def enter_room(self) -> None:
         """自动匹配入房（v1 只支持自动匹配，不做创建/加入私人房间）。
 
-        点击活动入口后游戏自动弹出“匹配中”弹窗并寻找房间；房间满员后
-        自动进入「团队演出 最终确认」页，全程无需手动点击。这里只用 OCR
-        等待最终确认页出现：命中即入房成功，超时给出明确失败原因。
+        点击活动入口后先落到中继页：底栏红色 OK 即自动匹配（实测中心
+        (1048,646)），点击后游戏自动匹配房间；满员后自动进入选曲揭晓与
+        「准备完毕」最终确认页，全程无需手动点击。这里以「准备完毕」出现
+        为入房成功信号，超时给出明确失败原因。
         """
         timeout = float(
             getattr(self, "match_timeout_seconds", FES_MATCH_TIMEOUT_SECONDS)
@@ -303,14 +316,13 @@ class FesLiveFlow:
             # 入口或处于页面过渡时（既不在流程也不在主页）直接进等待循环。
             self._navigate_to_entry()
         last_state = ""
+        ok_clicked = False
         while True:
             if self.stopped():
                 raise InterruptedError("用户已停止任务")
             image = self.capture()
             if self._ocr_box(
-                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
-            ) or self._ocr_box(
-                image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
+                image, "准备完毕", roi=(700, 500, 580, 220), threshold=0.4,
             ):
                 print(
                     "FesLive room=confirmed entry=auto-match "
@@ -318,10 +330,25 @@ class FesLiveFlow:
                     flush=True,
                 )
                 return
-            if self._ocr_box(image, "匹配中", threshold=0.4) or self._ocr_box(
-                image, "寻找房间", threshold=0.4,
+            if not ok_clicked and self._ocr_box(
+                image, "创建房间", roi=(0, 560, 1280, 160), threshold=0.4,
+            ):
+                self.click(FES_MATCH_OK_POINT)
+                ok_clicked = True
+                print(
+                    "FesLive match_ok_tapped=true "
+                    f"point=({FES_MATCH_OK_POINT[0]},{FES_MATCH_OK_POINT[1]})",
+                    flush=True,
+                )
+                state = "hub"
+            elif self._ocr_box(
+                image, "的成员匹配", roi=(0, 500, 1280, 220), threshold=0.4,
             ):
                 state = "matching"
+            elif self._ocr_box(
+                image, "请选择难度", roi=(0, 380, 1280, 240), threshold=0.4,
+            ):
+                state = "reveal"
             else:
                 state = "roster-or-loading"
             if state != last_state:
@@ -347,6 +374,7 @@ class FesLiveFlow:
             "identity_read_attempts": 2,
             "identity_retry_delay_seconds": 0.15,
             "difficulty_targets": FES_DIFFICULTY_TARGETS,
+            # 曲名/等级 ROI：等级 ROI 真机实测读出 27，曲名与协力同版式。
             "song_level_roi": (130, 580, 56, 38),
             "song_title_roi": (105, 535, 290, 52),
             "song_identity": False,
@@ -379,7 +407,7 @@ class FesLiveFlow:
             "dpi": FES_DPI,
             "game_fps": FES_GAME_FPS,
             "render_quality": FES_RENDER_QUALITY,
-            "coordinates": {"gear": (946, 650)},
+            "coordinates": {"gear": FES_GEAR_POINT},
             "defer_native_prearm": True,
             "cache_preparation_image": True,
         }
@@ -397,9 +425,9 @@ class FesLiveFlow:
         self._ready_up_and_wait()
 
     def _ready_up_and_wait(self) -> None:
-        """点击「准备完」并等待开演：所有人点完即开演，最长 30 秒倒计时
-        自动开演；无论哪种情况，最终确认页都会离开，本方法以页面离开
-        为信号返回，后续交给 RealtimeProfilePlay 等待加载与演奏。
+        """点击「准备完毕」并等待开演：所有人点完即开演，最长 30 秒倒计时
+        自动开演；无论哪种情况游戏都会进入加载，本方法以「NOW LOADING」
+        出现为离开信号返回，后续交给 RealtimeProfilePlay 等待加载与演奏。
         """
         timeout = float(
             getattr(
@@ -409,23 +437,16 @@ class FesLiveFlow:
             )
         )
         image = self.capture()
-        box = self._ocr_box(
-            image, "准备完", roi=(700, 500, 580, 220), threshold=0.4,
-        )
-        if box is None:
+        if self._ocr_box(
+            image, "准备完毕", roi=(700, 500, 580, 220), threshold=0.4,
+        ) is None:
             raise RuntimeError(
-                "最终确认页未找到“准备完”按钮（OCR 未命中，待真机校准 ROI/阈值）"
+                "最终确认页未找到“准备完毕”按钮（OCR 未命中，待真机复核）"
             )
-        # box 为 (x, y, w, h) 时点中心；run_recognition_direct 返回结构
-        # 可能是 box-like，按 LiveSelectFind 的用法取 .x/.y/.w/.h。
-        center = (
-            int(box.x + box.w // 2),
-            int(box.y + box.h // 2),
-        )
-        self.click(center)
+        self.click(FES_READY_POINT)
         print(
             "FesLive ready_tapped=true "
-            f"point=({center[0]},{center[1]})",
+            f"point=({FES_READY_POINT[0]},{FES_READY_POINT[1]})",
             flush=True,
         )
         started = time.monotonic()
@@ -435,10 +456,9 @@ class FesLiveFlow:
                 raise InterruptedError("用户已停止任务")
             time.sleep(1.0)
             image = self.capture()
-            still_on_page = self._ocr_box(
-                image, "最终确认", roi=(0, 0, 1280, 200), threshold=0.4,
-            )
-            if still_on_page is None:
+            if self._ocr_box(
+                image, "NOW LOADING", roi=(0, 300, 1280, 300), threshold=0.4,
+            ):
                 print(
                     "FesLive ready_departed=true "
                     f"elapsed={time.monotonic() - started:.1f}s",
@@ -446,8 +466,8 @@ class FesLiveFlow:
                 )
                 return
         raise RuntimeError(
-            f"点击准备完后 {timeout:.0f} 秒内未离开最终确认页"
-            "（其他玩家未准备且倒计时未触发）"
+            f"点击准备完毕后 {timeout:.0f} 秒内未离开最终确认页"
+            "（其他玩家未准备且倒计时未触发，或触控未送达）"
         )
 
     def play(self) -> bool:
@@ -543,7 +563,7 @@ class FesLiveFlow:
                     )
                 except Exception as evidence_error:
                     print(
-                        "FesLive retry_evidence_failed="
+                        f"FesLive retry_evidence_failed="
                         f"{type(evidence_error).__name__}: {evidence_error}",
                         flush=True,
                     )

@@ -10,6 +10,9 @@ import agent.realtime.fes_action as fes_action
 from agent.realtime.fes_action import (
     DEFAULT_SETTINGS,
     FES_DIFFICULTY_TARGETS,
+    FES_GEAR_POINT,
+    FES_MATCH_OK_POINT,
+    FES_READY_POINT,
     FesLiveFlow,
     configure_fes_settings,
     current_fes_settings,
@@ -74,8 +77,21 @@ def test_fes_recording_kind_registered():
 
 
 def test_fes_difficulty_targets_cover_all_difficulties():
-    # 四档难度；Fes 没有 Special。
+    # 四档难度；Fes 没有 Special（UI 第五槽永不点击）。
     assert set(FES_DIFFICULTY_TARGETS) == {"Easy", "Normal", "Hard", "Expert"}
+
+
+def test_fes_calibrated_points_match_real_device_recording():
+    # 雷电模拟器 1280x720 录像实测：难度行霍夫圆 + 红按钮 HSV 中心。
+    assert FES_DIFFICULTY_TARGETS == {
+        "Easy": (602, 572),
+        "Normal": (684, 574),
+        "Hard": (770, 572),
+        "Expert": (856, 574),
+    }
+    assert FES_READY_POINT == (1123, 630)
+    assert FES_MATCH_OK_POINT == (1048, 646)
+    assert FES_GEAR_POINT == (946, 650)
 
 
 def test_fes_unlimited_continues_until_stop():
@@ -178,11 +194,11 @@ def _ocr_stub(responses: dict):
     return ocr
 
 
-def test_fes_enter_room_confirms_when_final_page_visible():
+def test_fes_enter_room_confirms_when_prepare_button_visible():
     flow = _bare_flow()
     flow.match_timeout_seconds = 5.0
     flow.capture = lambda: None
-    flow._ocr_box = _ocr_stub({"最终确认": _box()})
+    flow._ocr_box = _ocr_stub({"准备完毕": _box()})
     assert flow.enter_room() is None
 
 
@@ -190,10 +206,10 @@ def test_fes_enter_room_waits_through_matching_state():
     flow = _bare_flow()
     flow.match_timeout_seconds = 10.0
     flow.capture = lambda: None
-    # 前两次最终确认未出现（列表弹出 None），匹配中一直可见，第三次命中。
+    # 前两次准备完毕未出现（列表弹出 None），匹配文案一直可见，第三次命中。
     flow._ocr_box = _ocr_stub({
-        "最终确认": [None, None, _box()],
-        "匹配中": _box(),
+        "准备完毕": [None, None, _box()],
+        "的成员匹配": _box(),
     })
     assert flow.enter_room() is None
 
@@ -211,9 +227,9 @@ def test_fes_enter_room_navigates_from_home_between_rounds():
     flow = _bare_flow()
     flow.match_timeout_seconds = 5.0
     flow.capture = lambda: None
-    # 第一次 OCR 全未命中（不在流程中），主页模板命中触发导航；
-    # 导航后等待循环第一次就看到最终确认页。
-    flow._ocr_box = _ocr_stub({"最终确认": [None, _box()]})
+    # 第一次流程锚点全未命中（不在流程中），主页模板命中触发导航；
+    # 导航后等待循环第一次就看到准备完毕页。
+    flow._ocr_box = _ocr_stub({"准备完毕": [None, _box()]})
     flow.context.run_recognition = (
         lambda node, _image: (
             SimpleNamespace(hit=True, box=_box())
@@ -232,13 +248,30 @@ def test_fes_enter_room_skips_navigation_when_already_in_flow():
     flow.capture = lambda: None
     navigated = []
     flow._navigate_to_entry = lambda: navigated.append(True)
-    # 匹配中可见 → 已在流程中，跳过导航；最终确认随后出现。
+    # 匹配文案可见 → 已在流程中，跳过导航；准备完毕随后出现。
     flow._ocr_box = _ocr_stub({
-        "最终确认": [None, _box()],
-        "匹配中": _box(),
+        "准备完毕": [None, _box()],
+        "的成员匹配": _box(),
     })
     assert flow.enter_room() is None
     assert navigated == []
+
+
+def test_fes_enter_room_taps_hub_ok_once():
+    # 中继页出现“创建房间”即点底栏红色 OK（自动匹配），且只点一次。
+    flow = _bare_flow()
+    flow.match_timeout_seconds = 5.0
+    flow.capture = lambda: None
+    clicks = []
+    flow.click = clicks.append
+    flow._ocr_box = _ocr_stub({
+        # 首次 None 被 _in_fes_flow 探测消费；第二次 None 让出 hub 分支；
+        # 第三次命中“准备完毕”确认入房。
+        "准备完毕": [None, None, _box()],
+        "创建房间": _box(),
+    })
+    assert flow.enter_room() is None
+    assert clicks == [(1048, 646)]
 
 
 def test_fes_navigate_requires_home_entry():
@@ -250,24 +283,25 @@ def test_fes_navigate_requires_home_entry():
         flow._navigate_to_entry()
 
 
-def test_fes_ready_up_taps_prepare_and_waits_for_departure():
+def test_fes_ready_up_taps_prepare_and_waits_for_loading():
     flow = _bare_flow()
     flow.ready_departure_timeout_seconds = 10.0
     flow.capture = lambda: None
     clicks = []
     flow.click = clicks.append
     flow._ocr_box = _ocr_stub({
-        "准备完": _box(x=1000, y=600, w=80, h=40),
-        "最终确认": None,  # 点击后页面离开
+        "准备完毕": _box(x=1000, y=600, w=80, h=40),
+        # 第一次未见加载，第二次 NOW LOADING 出现 → 离开。
+        "NOW LOADING": [None, _box()],
     })
     flow._ready_up_and_wait()
-    assert clicks == [(1040, 620)]
+    assert clicks == [(1123, 630)]
 
 
 def test_fes_ready_up_fails_when_button_missing():
     flow = _bare_flow()
     flow.capture = lambda: None
-    flow._ocr_box = _ocr_stub({"准备完": None})
+    flow._ocr_box = _ocr_stub({"准备完毕": None})
     with pytest.raises(RuntimeError, match="准备完"):
         flow._ready_up_and_wait()
 
@@ -277,7 +311,7 @@ def test_fes_ready_up_times_out_if_page_never_departs():
     flow.ready_departure_timeout_seconds = 0.0
     flow.capture = lambda: None
     flow.click = lambda _point: None
-    flow._ocr_box = _ocr_stub({"准备完": _box()})
+    flow._ocr_box = _ocr_stub({"准备完毕": _box()})
     with pytest.raises(RuntimeError, match="未离开最终确认页"):
         flow._ready_up_and_wait()
 
