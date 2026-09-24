@@ -689,30 +689,36 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
         block_broad_change=True,
         playfield_detector=lambda _image: True,
     )
-    stable, flash, note = _photogate_intro_frames()
+    stable, flash, _note = _photogate_intro_frames()
+    # 转场后判定带外观永久改变（进场前抓到的基线失配）；真首音出现在
+    # 新外观上。锁死旧基线会把每一帧都判成宽列而挂死（真机 blocked=3064）。
+    # settled 与 flash(60) 每通道差 20 → 列变化 60 ≥ 45，属高对比宽列
+    # （真机实测转场后对旧基线 change≈236，同量级）。
+    settled = np.full((720, 1280, 3), 40, dtype=np.uint8)
+    note_on_settled = settled.copy()
+    note_on_settled[510:536, 600:750, :] = 65
 
     for index in range(17):
         assert gate.observe(stable, index / 60.0) is None
     assert gate.frozen is True
     assert gate.observe(stable, 479 / 60.0) is None
 
-    # 进场画面结束的整带转场不得触发首拍门，且必须保持冻结基线。
+    # 转场帧：宽列拦截 + 逐帧重基线，不得触发首拍门。
     assert gate.observe(flash, 480 / 60.0) is None
+    # 重基线后的同外观帧立即恢复安静判定（change=0）。
     assert gate.observe(flash, 481 / 60.0) is None
+    assert gate.triggered is False
+    # 定妆到最终外观：对闪帧基线仍是宽列 → 再次拦截并吸收新外观。
+    assert gate.observe(settled, 482 / 60.0) is None
+    assert gate.observe(settled, 483 / 60.0) is None
     assert gate.triggered is False
     assert gate.frozen is True
     assert gate.ignored_prelude_events == 0
 
-    # 闪出帧回归基线，同样不得被当成一次“穿越”。
-    assert gate.observe(stable, 482 / 60.0) is None
-    assert gate.triggered is False
-
-    # 真首音（窄列变化）按插值 + 屏显延迟正常定位。
-    note_score = 3.0 * (150.0 / 1280.0) * 15.0
-    expected = (
-        482 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    )
-    anchor = gate.observe(note, 483 / 60.0)
+    # 真首音（新外观上的窄列变化）按插值 + 屏显延迟正常定位——死锁已解除。
+    note_score = 3.0 * (150.0 / 1280.0) * 25.0
+    expected = 483 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    anchor = gate.observe(note_on_settled, 484 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -727,6 +733,32 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
         )
         == 2
     )
+
+
+def test_fes_photogate_broad_block_gives_up_after_cap():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=500.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable, flash, _note = _photogate_intro_frames()
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.observe(stable, 479 / 60.0) is None
+
+    # 保险丝触发后不再拦截：宽列变化按原行为触发，宁可提前不可挂死。
+    gate.broad_blocked_events = NativeStartPhotogate._BROAD_BLOCK_MAX_EVENTS
+    flash_score = 3.0 * 30.0
+    expected = 479 / 60 + (3.0 / flash_score) * (1 / 60) + 0.190
+    anchor = gate.observe(flash, 480 / 60.0)
+    assert gate.triggered is True
+    assert anchor == pytest.approx(expected, abs=1e-6)
+    assert gate.broad_blocked_events == NativeStartPhotogate._BROAD_BLOCK_MAX_EVENTS
 
 
 def test_single_photogate_intro_flash_behavior_unchanged():

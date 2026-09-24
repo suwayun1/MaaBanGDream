@@ -51,8 +51,8 @@ def resolve_native_start_gate_policy(run_mode: str | None) -> NativeStartGatePol
         # Fes 联机在演奏场上多一段进场画面；其结束转场对判定带是整行
         # 大面积变化，会抢在真首音前触发首拍门，整曲按键恒定提前
         # （真机实测 Single 全 miss、hold 主体命中、fast/slow=86/0）。
-        # 宽列拦截复用协力弹窗的结构判据，但保持冻结基线：闪进/闪出
-        # 都不触发，由真首音（窄列变化）正常插值定位。
+        # 宽列拦截复用协力弹窗的结构判据，并在拦截时逐帧重基线吸收
+        # 转场后的外观变化，由真首音（窄列变化）正常插值定位。
         return NativeStartGatePolicy(
             mode="fes-playfield-intro",
             stable_duration_ms=250.0,
@@ -213,6 +213,9 @@ class NativeStartPhotogate:
     # 相邻轨道列。逐列变化超过该分量的列数占比过大时视为弹窗转场。
     _BROAD_COLUMN_MIN = 45.0
     _BROAD_COLUMN_FRACTION = 0.35
+    # 死锁保险丝：60FPS 下约 10s 仍在拦截说明判据已不可信，放弃拦截
+    # 退回普通触发——锚点可能提前，但绝不能像真机实测那样挂死零按键。
+    _BROAD_BLOCK_MAX_EVENTS = 600
 
     def __init__(
         self,
@@ -474,9 +477,13 @@ class NativeStartPhotogate:
             self._last_color = current
             return None
 
+        block_broad = self._popup_gate_enabled or (
+            self._broad_block_enabled
+            and self.broad_blocked_events < self._BROAD_BLOCK_MAX_EVENTS
+        )
         if (
             change_score >= self._change_threshold
-            and (self._popup_gate_enabled or self._broad_block_enabled)
+            and block_broad
             and self._frozen_columns is not None
         ):
             # 弹窗缩放出现/消失或背景变暗时，判定带会发生大面积变化；首颗
@@ -502,10 +509,13 @@ class NativeStartPhotogate:
                     # 协力弹窗消失后有数秒安静期，可整段重置等重新稳定。
                     self._reset_band_state()
                     return None
-                # Fes 进场转场后 0.2s 内就是真首音：保持冻结基线与
-                # last_color（不采信闪帧颜色），仅作废本帧的插值状态。
-                # 闪出帧相对基线为窄列/小幅变化不会触发；真首音帧以
-                # previous_change=None 走 direct，或安静帧后插值定位。
+                # Fes 进场转场会让判定带外观在转场后永久变化（基线抓在
+                # 进场画面期间）：锁死旧基线会把包括真首音在内的每一帧
+                # 都判成宽列而挂死（真机实测 blocked=3064）。因此拦截
+                # 转场帧的同时把基线切到当前帧：逐帧吸收动画，定妆后
+                # 即恢复安静判定，真首音（窄列变化）正常插值触发。
+                self._last_color = current
+                self._frozen_columns = current_columns
                 self._previous_change = None
                 self._previous_frame_s = frame_s
                 return None
