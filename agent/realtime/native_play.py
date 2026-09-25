@@ -221,6 +221,26 @@ class NativeStartPhotogate:
     # suppress×3 → 1 帧安静 → 33ms 后 interpolated 以 score=20.4 触发，
     # 锚点落进转场中段）。
     _QUIET_ARM_FRAMES = 8
+    # 候选后退场验证（v5）：武装窗只能排除“前面安静不够”的假锚，挡不住
+    # 转场内部先静止一大段再闪一下的假锚（真机 人マニア 局：静止 932ms
+    # 后 score=49.66 假触发，比真首音早 0.85s，全部按键落空清血）。
+    # 音符是“出现又退场”的瞬态：候选帧先挂起，连续
+    # _SETTLE_SETTLE_FRAMES 帧“帧间安静 且 判定带回到候选前外观”才提交
+    # 锚点；_SETTLE_TIMEOUT_FRAMES 帧内回不去说明是转场构件赖着不走，
+    # 计数后重基线继续等。提交最迟约 5 帧（约 83ms），仍早于首拍 due
+    # （trigger+190ms−offset），不挤压输入调度。
+    _SETTLE_SETTLE_FRAMES = 2
+    _SETTLE_TIMEOUT_FRAMES = 8
+    # “回到候选前外观”：逐列 L1 变化 ≥ 列阈值的残留列数 ≤ 容差才算
+    # 回去（音符残留/转场构件占几十到上百列，静态噪声只有零星几列）。
+    _SETTLE_LINGER_COLUMNS = 8
+    # 验证路径自己的保险丝：累计拒绝到此值后放弃验证直接提交，与宽列/
+    # 压制保险丝同一哲学：宁可早锚，不许挂死。
+    _SETTLE_MAX_REJECTS = 60
+    # 音符头部只改变一条轨道附近的少数列：宽到跨两轨以上、或变化块
+    # 中心不在任何轨道中心附近的高变化只能是转场构件，不进验证直接拒。
+    _SHAPE_MAX_COLUMNS = 240
+    _SHAPE_CENTER_TOLERANCE = 60.0
 
     def __init__(
         self,
@@ -272,13 +292,27 @@ class NativeStartPhotogate:
         self._broad_block_enabled = bool(block_broad_change)
         self.broad_blocked_events = 0
         self.transition_suppressed_frames = 0
-        # 只有 fes（转场拦截启用且非协力弹窗）需要武装窗；单人/协力路径
-        # 的触发语义保持公式级不变。
+        # 只有 fes（转场拦截启用且非协力弹窗）需要武装窗与退场验证；
+        # 单人/协力路径的触发语义保持公式级不变。
         self._requires_quiet_arm = bool(
+            self._broad_block_enabled and not self._popup_gate_enabled
+        )
+        self._requires_settle = bool(
             self._broad_block_enabled and not self._popup_gate_enabled
         )
         self._quiet_streak = 0
         self.quiet_armed_events = 0
+        # 候选挂起状态：进入退场验证后 observe 每帧先验证再谈新候选。
+        self._pending_trigger_s: float | None = None
+        self._pending_trigger_source: str | None = None
+        self._pending_trigger_score: float | None = None
+        self._pending_candidate_frame_s: float | None = None
+        self._pre_candidate_columns: np.ndarray | None = None
+        self._settle_frames_seen = 0
+        self._settle_pass_streak = 0
+        self.settle_rejected_events = 0
+        self.shape_rejected_events = 0
+        self._last_columns: np.ndarray | None = None
         self._popup_detector = (
             popup_detector
             if popup_detector is not None
@@ -317,6 +351,8 @@ class NativeStartPhotogate:
         """演奏场尚未成立或短暂消失时，丢弃此前加载页颜色基线。"""
         self._last_color = None
         self._frozen_columns = None
+        self._last_columns = None
+        self._clear_pending_candidate()
         self._previous_change = None
         self._previous_frame_s = None
         self.stable_since_s = None
@@ -324,11 +360,31 @@ class NativeStartPhotogate:
         self.waited_frames = 0
         self.frozen = False
 
+    def _clear_pending_candidate(self) -> None:
+        """丢弃挂起中的候选锚点（重置或验证结束时）。"""
+        self._pending_trigger_s = None
+        self._pending_trigger_source = None
+        self._pending_trigger_score = None
+        self._pending_candidate_frame_s = None
+        self._pre_candidate_columns = None
+        self._settle_frames_seen = 0
+        self._settle_pass_streak = 0
+
+    def _fuse_exhausted(self) -> bool:
+        """任一保险丝熔断即放弃验证直接提交：宁可早锚，不许挂死。"""
+        return (
+            self.broad_blocked_events >= self._BROAD_BLOCK_MAX_EVENTS
+            or self.transition_suppressed_frames >= self._BROAD_BLOCK_MAX_EVENTS
+            or self.settle_rejected_events + self.shape_rejected_events
+            >= self._SETTLE_MAX_REJECTS
+        )
+
     def _record_event(
         self,
         event: str,
         frame_s: float,
         change_score: float,
+        **extra: object,
     ) -> None:
         """只保留有界关键事件，避免逐帧日志反过来干扰实时路径。"""
         elapsed_ms = (
@@ -336,11 +392,14 @@ class NativeStartPhotogate:
             if self._observed_since_s is not None
             else 0.0
         )
-        self._significant_events.append({
+        entry: dict[str, object] = {
             "event": event,
             "elapsed_ms": elapsed_ms,
             "change_score": change_score,
-        })
+        }
+        if extra:
+            entry.update(extra)
+        self._significant_events.append(entry)
 
     def report(self) -> dict[str, object]:
         """输出足够复盘首音误触发或漏触发的状态。"""
@@ -381,6 +440,11 @@ class NativeStartPhotogate:
             "photogate_transition_suppressed": self.transition_suppressed_frames,
             "photogate_quiet_arm_frames": self._QUIET_ARM_FRAMES,
             "photogate_quiet_armed": self.quiet_armed_events,
+            "photogate_settle_frames": self._SETTLE_SETTLE_FRAMES,
+            "photogate_settle_timeout_frames": self._SETTLE_TIMEOUT_FRAMES,
+            "photogate_settle_pending": self._pending_trigger_s is not None,
+            "photogate_settle_rejected": self.settle_rejected_events,
+            "photogate_shape_rejected": self.shape_rejected_events,
             "photogate_prepare_popup_enabled": self._popup_gate_enabled,
             "photogate_prepare_popup_frames": self.prepare_popup_frames,
             "photogate_prepare_popup_blocked_events": (
@@ -449,8 +513,16 @@ class NativeStartPhotogate:
                 self._record_event("prepare-popup-gone", frame_s, 0.0)
                 self._reset_band_state()
                 return None
+        current_columns: np.ndarray | None = None
+        if self._requires_settle:
+            # 退场验证与形状检查都要逐列像素；只在 fes 路径计算，
+            # 单人/协力保持原有逐帧成本与触发语义。
+            current_columns = image[
+                from_row : to_row + 1, :, :3
+            ].astype("float64").mean(axis=0)
         if self._last_color is None:
             self._last_color = current
+            self._last_columns = current_columns
             self._previous_frame_s = frame_s
             return None
         change_score = float(abs(current - self._last_color).sum())
@@ -496,6 +568,7 @@ class NativeStartPhotogate:
             self._previous_change = change_score
             self._previous_frame_s = frame_s
             self._last_color = current
+            self._last_columns = current_columns
             return None
 
         assert self.frozen_at_s is not None
@@ -506,6 +579,75 @@ class NativeStartPhotogate:
             self._previous_change = change_score
             self._previous_frame_s = frame_s
             self._last_color = current
+            self._last_columns = current_columns
+            return None
+
+        if self._pending_trigger_s is not None:
+            # 候选退场验证：音符离开判定带后画面会回到候选前外观；转场
+            # 构件要么持续帧间高变化，要么静置时整块像素与候选前不同，
+            # 在超时帧数内回不去。验证期间不认新候选、不走宽列分支。
+            assert self._pre_candidate_columns is not None
+            assert current_columns is not None
+            assert self._pending_candidate_frame_s is not None
+            assert self._pending_trigger_source is not None
+            assert self._pending_trigger_score is not None
+            self._settle_frames_seen += 1
+            lingering_columns = int(
+                (
+                    np.abs(
+                        current_columns - self._pre_candidate_columns
+                    ).sum(axis=1)
+                    >= self._BROAD_COLUMN_MIN
+                ).sum()
+            )
+            if (
+                change_score < self._change_threshold
+                and lingering_columns <= self._SETTLE_LINGER_COLUMNS
+            ):
+                self._settle_pass_streak += 1
+            else:
+                self._settle_pass_streak = 0
+            settled = self._settle_pass_streak >= self._SETTLE_SETTLE_FRAMES
+            timed_out = (
+                self._settle_frames_seen >= self._SETTLE_TIMEOUT_FRAMES
+            )
+            if settled or timed_out:
+                pending_s = self._pending_trigger_s
+                pending_source = self._pending_trigger_source
+                pending_score = self._pending_trigger_score
+                pending_frame_s = self._pending_candidate_frame_s
+                settle_frames_seen = self._settle_frames_seen
+                self._clear_pending_candidate()
+                if settled:
+                    self.triggered = True
+                    self.triggered_at_s = pending_frame_s
+                    self.trigger_score = pending_score
+                    self.trigger_source = pending_source
+                    self._record_event(
+                        "trigger",
+                        frame_s,
+                        pending_score,
+                        settle_frames=settle_frames_seen,
+                    )
+                    self._previous_change = change_score
+                    self._previous_frame_s = frame_s
+                    self._last_color = current
+                    self._last_columns = current_columns
+                    return pending_s + self._latency_s
+                # 超时未退回候选前外观：判为转场构件假候选，吸收当前
+                # 外观为新基线后继续等待，真首音会在新外观上正常通过。
+                self.settle_rejected_events += 1
+                self._record_event(
+                    "candidate-settle-rejected",
+                    frame_s,
+                    change_score,
+                    lingered_columns=lingering_columns,
+                )
+                self._frozen_columns = current_columns
+            self._previous_change = change_score
+            self._previous_frame_s = frame_s
+            self._last_color = current
+            self._last_columns = current_columns
             return None
 
         block_broad = self._popup_gate_enabled or (
@@ -520,9 +662,10 @@ class NativeStartPhotogate:
             # 弹窗缩放出现/消失或背景变暗时，判定带会发生大面积变化；首颗
             # 音符只改变少数相邻轨道列。逐列比较冻结基线，变化列占比过高
             # 就判定为弹窗转场，重置基线后继续等待真正的首音。
-            current_columns = image[
-                from_row : to_row + 1, :, :3
-            ].astype("float64").mean(axis=0)
+            if current_columns is None:
+                current_columns = image[
+                    from_row : to_row + 1, :, :3
+                ].astype("float64").mean(axis=0)
             column_change = np.abs(
                 current_columns - self._frozen_columns
             ).sum(axis=1)
@@ -546,6 +689,7 @@ class NativeStartPhotogate:
                 # 转场帧的同时把基线切到当前帧：逐帧吸收动画，定妆后
                 # 即恢复安静判定，真首音（窄列变化）正常插值触发。
                 self._last_color = current
+                self._last_columns = current_columns
                 self._frozen_columns = current_columns
                 self._previous_change = None
                 self._previous_frame_s = frame_s
@@ -592,18 +736,85 @@ class NativeStartPhotogate:
                 change_score,
             )
 
+        defer_for_settle = False
         if trigger_s is not None:
+            if (
+                self._requires_settle
+                and current_columns is not None
+                and not self._fuse_exhausted()
+            ):
+                # 保险丝未熔断时候选先过形状检查再挂起退场验证；任一
+                # 保险丝熔断则直接提交（宁可早锚，不许挂死）。
+                shape_width: int | None = None
+                shape_center: float | None = None
+                shape_ok = False
+                if self._last_columns is not None:
+                    column_diff = np.abs(
+                        current_columns - self._last_columns
+                    ).sum(axis=1)
+                    hit_columns = np.nonzero(
+                        column_diff >= self._BROAD_COLUMN_MIN
+                    )[0]
+                    shape_width = int(hit_columns.size)
+                    if 0 < shape_width <= self._SHAPE_MAX_COLUMNS:
+                        shape_center = float(hit_columns.mean())
+                        lane_centers = (
+                            np.asarray(LANE_CENTERS, dtype="float64")
+                            * (image.shape[1] / 1280.0)
+                        )
+                        shape_ok = (
+                            float(
+                                np.abs(lane_centers - shape_center).min()
+                            )
+                            <= self._SHAPE_CENTER_TOLERANCE
+                        )
+                if shape_ok:
+                    # 形状像音符：挂起锚点等它退场，提交时刻仍取候选帧
+                    # 插值，验证耗时不进锚点。
+                    assert trigger_s is not None
+                    self._pending_trigger_s = trigger_s
+                    self._pending_trigger_source = trigger_source
+                    self._pending_trigger_score = change_score
+                    self._pending_candidate_frame_s = frame_s
+                    self._pre_candidate_columns = self._last_columns
+                    self._settle_frames_seen = 0
+                    self._settle_pass_streak = 0
+                    self._record_event(
+                        "candidate-settle",
+                        frame_s,
+                        change_score,
+                        shape_width=shape_width,
+                        shape_center=shape_center,
+                    )
+                    defer_for_settle = True
+                else:
+                    # 形状不像音符（过宽/偏离轨道中心/无有效列）：当场
+                    # 拒绝，吸收外观后继续等，不进验证也不提交。
+                    self.shape_rejected_events += 1
+                    self._frozen_columns = current_columns
+                    self._record_event(
+                        "candidate-shape-rejected",
+                        frame_s,
+                        change_score,
+                        shape_width=shape_width,
+                        shape_center=shape_center,
+                    )
+                    defer_for_settle = True
+
+        if trigger_s is not None and not defer_for_settle:
             self.triggered = True
             self.triggered_at_s = frame_s
             self.trigger_score = change_score
             self.trigger_source = trigger_source
             self._record_event("trigger", frame_s, change_score)
             self._last_color = current
+            self._last_columns = current_columns
             return trigger_s + self._latency_s
 
         self._previous_change = change_score
         self._previous_frame_s = frame_s
         self._last_color = current
+        self._last_columns = current_columns
         return None
 
 

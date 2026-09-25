@@ -721,10 +721,15 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
         assert gate.observe(settled, (483 + quiet_index) / 60.0) is None
     assert gate.triggered is False
 
-    # 真首音（新外观上的窄列变化）按插值 + 屏显延迟正常定位——死锁已解除。
+    # 真首音（新外观上的窄列变化）：先过形状检查挂起退场验证，音符离开
+    # 判定带、画面回到候选前外观并连续安静后才提交锚点——死锁已解除。
     note_score = 3.0 * (150.0 / 1280.0) * 25.0
     expected = 490 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    anchor = gate.observe(note_on_settled, 491 / 60.0)
+    assert gate.observe(note_on_settled, 491 / 60.0) is None
+    # 首个回退帧帧间仍是高变化（音符正在离开），不计通过。
+    assert gate.observe(settled, 492 / 60.0) is None
+    assert gate.observe(settled, 493 / 60.0) is None
+    anchor = gate.observe(settled, 494 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -742,6 +747,10 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
     assert report["photogate_quiet_arm_frames"] == 8
     # 初始稳定段武装一次 + 转场定妆后重新武装一次。
     assert report["photogate_quiet_armed"] == 2
+    # 真首音走退场验证通过，无拒绝、验证已结束。
+    assert report["photogate_settle_rejected"] == 0
+    assert report["photogate_shape_rejected"] == 0
+    assert report["photogate_settle_pending"] is False
 
 
 def test_fes_photogate_broad_block_gives_up_after_cap():
@@ -816,10 +825,14 @@ def test_fes_photogate_requires_upcross_after_transition_tail():
     assert gate.triggered is False
     assert gate.transition_suppressed_frames == 2
 
-    # 真首音从阈值下方上穿：插值 + 屏显延迟正常定位。
+    # 真首音从阈值下方上穿：先挂起退场验证，回到候选前外观后提交；
+    # 锚点仍取候选帧插值，验证耗时不进锚点。
     note_score = 3.0 * (160.0 / 1280.0) * 15.0
     expected = 130 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    anchor = gate.observe(note, 131 / 60.0)
+    assert gate.observe(note, 131 / 60.0) is None
+    assert gate.observe(settled, 132 / 60.0) is None
+    assert gate.observe(settled, 133 / 60.0) is None
+    anchor = gate.observe(settled, 134 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -829,6 +842,8 @@ def test_fes_photogate_requires_upcross_after_transition_tail():
     assert report["photogate_broad_blocked_events"] == 1
     assert report["photogate_transition_suppressed"] == 2
     assert report["photogate_quiet_armed"] == 2
+    assert report["photogate_settle_rejected"] == 0
+    assert report["photogate_shape_rejected"] == 0
 
 
 def test_fes_photogate_direct_suppression_bails_out_at_cap():
@@ -922,10 +937,13 @@ def test_fes_photogate_requires_sustained_quiet_to_arm():
         assert gate.observe(settled, (126 + quiet_index) / 60.0) is None
     assert gate.triggered is False
 
-    # 真首音上穿：插值 + 屏显延迟定位。
+    # 真首音上穿：插值 + 屏显延迟定位，退场验证通过后提交。
     note_score = 3.0 * (160.0 / 1280.0) * 15.0
     expected = 133 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    anchor = gate.observe(note, 134 / 60.0)
+    assert gate.observe(note, 134 / 60.0) is None
+    assert gate.observe(settled, 135 / 60.0) is None
+    assert gate.observe(settled, 136 / 60.0) is None
+    anchor = gate.observe(settled, 137 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -935,9 +953,149 @@ def test_fes_photogate_requires_sustained_quiet_to_arm():
     assert report["photogate_transition_suppressed"] == 4
     assert report["photogate_quiet_arm_frames"] == 8
     assert report["photogate_quiet_armed"] == 2
+    assert report["photogate_settle_rejected"] == 0
+    assert report["photogate_shape_rejected"] == 0
     events = [event["event"] for event in report["photogate_events"]]
     assert events.count("direct-suppressed") == 4
     assert events[-1] == "trigger"
+
+
+def test_fes_settle_rejects_static_flourish_after_long_quiet():
+    """真机 人マニア 局：长静止后出现与真首音同轨的静态假闪。
+
+    武装窗（≥8 帧安静）在假闪前早已满足，无法区分；退场验证要求候选后
+    判定带回到候选前外观，静态构件赖着不走 → 超时拒绝 → 重基线继续
+    等，真首音在最终外观上正常通过验证。
+    """
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=0.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    # 600:750 中心 674.5，离 640 轨道 34.5——形状检查必须放行，
+    # 才轮到退场验证裁决。
+    flourish = stable.copy()
+    flourish[510:536, 600:750, :] = 75
+    note = stable.copy()
+    note[510:536, 600:750, :] = 45
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.frozen is True
+
+    # 长静止后假闪：武装已满、上穿合格 → 挂起验证（不提交）。
+    assert gate.observe(flourish, 17 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.report()["photogate_settle_pending"] is True
+
+    # 静态假闪赖着不走：帧间安静但判定带回不到候选前外观 → 超时拒绝。
+    for index in range(18, 26):
+        assert gate.observe(flourish, index / 60.0) is None
+    assert gate.settle_rejected_events == 1
+    assert gate.triggered is False
+
+    # 假闪退场帧：形状合格再次挂起，但候选前外观已是假闪，稳定画面
+    # 同样回不去 → 第二次拒绝并把基线吸到最终外观。
+    assert gate.observe(stable, 26 / 60.0) is None
+    for index in range(27, 35):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.settle_rejected_events == 2
+    assert gate.triggered is False
+
+    # 拒绝后世界回到安静：补足武装帧并让 prev 落在 43/60。
+    for index in range(35, 44):
+        assert gate.observe(stable, index / 60.0) is None
+
+    # 真首音正常通过验证。
+    note_score = 3.0 * (150.0 / 1280.0) * 15.0
+    expected = 43 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    assert gate.observe(note, 44 / 60.0) is None
+    assert gate.observe(stable, 45 / 60.0) is None
+    assert gate.observe(stable, 46 / 60.0) is None
+    anchor = gate.observe(stable, 47 / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_settle_rejected"] == 2
+    assert report["photogate_shape_rejected"] == 0
+    assert report["photogate_quiet_armed"] == 3
+    assert report["photogate_broad_blocked_events"] == 0
+    events = [event["event"] for event in report["photogate_events"]]
+    assert events.count("candidate-settle") == 3
+    assert events.count("candidate-settle-rejected") == 2
+    assert events[-1] == "trigger"
+
+
+def test_fes_candidate_rejects_offlane_and_oversized_shape():
+    """转场构件可能偏离轨道中心或横跨多轨：形状不合格直接拒绝。
+
+    宽块 280 列低于宽列拦截线（448 列），离轨窄块中心 714.5 离最近
+    轨道 74.5px——两者都只能靠形状检查拒掉，且拒绝后不得污染压制
+    计数。离轨块刻意避开宽块（不重叠，差分不被截断）。
+    """
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=0.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    wide = stable.copy()
+    wide[510:536, 300:580, :] = 75
+    offlane = wide.copy()
+    offlane[510:536, 650:780, :] = 75
+    note = offlane.copy()
+    note[510:536, 600:750, :] = 45
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.frozen is True
+
+    # 超宽（280 列 > 240）：形状拒绝，吸收外观。
+    assert gate.observe(wide, 17 / 60.0) is None
+    assert gate.shape_rejected_events == 1
+    assert gate.triggered is False
+
+    # 宽块静置期间重新武装（8 帧）。
+    for index in range(18, 26):
+        assert gate.observe(wide, index / 60.0) is None
+    assert gate.shape_rejected_events == 1
+
+    # 与宽块不重叠的离轨窄块（中心 714.5，距 640/790 轨道 74.5 > 60）。
+    assert gate.observe(offlane, 26 / 60.0) is None
+    assert gate.shape_rejected_events == 2
+    assert gate.triggered is False
+
+    for index in range(27, 35):
+        assert gate.observe(offlane, index / 60.0) is None
+    assert gate.triggered is False
+
+    # 真首音（合轨窄列）在混合外观上通过形状 + 退场验证。
+    note_score = 3.0 * (150.0 / 1280.0) * 15.0
+    expected = 34 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    assert gate.observe(note, 35 / 60.0) is None
+    assert gate.observe(offlane, 36 / 60.0) is None
+    assert gate.observe(offlane, 37 / 60.0) is None
+    anchor = gate.observe(offlane, 38 / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_shape_rejected"] == 2
+    assert report["photogate_settle_rejected"] == 0
+    assert report["photogate_transition_suppressed"] == 0
+    assert report["photogate_quiet_armed"] == 3
 
 
 def test_single_photogate_intro_flash_behavior_unchanged():
