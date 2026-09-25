@@ -2875,8 +2875,8 @@ class RealtimeProfilePlay(CustomAction):
             })
 
         if stats.jump_requested:
-            # 协力“断网跳车”：本局以“请求跳车”结束，不做结算解析与退出
-            # 导航；跳车流程由外层协力流程读取 live run 信号后执行。
+            # “断网跳车”（协力/Fes）：本局以“请求跳车”结束，不做结算解析
+            # 与退出导航；外层流程读取 live run 信号后执行切桌面收尾。
             print(
                 "RealtimeProfilePlay disconnect_jump_requested=true "
                 "round_ended_early=true",

@@ -67,8 +67,9 @@ def test_fes_play_params_declare_fes_run_mode():
     assert params["require_profile"] is True
     assert params["require_completion"] is True
     assert params["wait_for_completion"] is True
-    # 骨架不启用协力专属机制
-    assert "life_depleted_jump_request" not in params
+    # 生命归零跳车请求已启用（引擎归零帧停手置位，切桌面由外层执行）；
+    # 其余协力专属机制（结算拖沓等）仍不启用。
+    assert params["life_depleted_jump_request"] is True
     assert "defer_result_collection" not in params
 
 
@@ -172,6 +173,143 @@ def test_fes_user_stop_returns_true_mid_round():
 
     flow.run_attempt = attempt
     assert flow.run() is True
+
+
+def _make_jump_flow(monkeypatch, *, jump_requested):
+    """跳车测试流：伪 RealtimeProfilePlay + 信号化 live run + 记录型控制器。"""
+
+    class Play:
+        def run(self, _context, _params):
+            return True
+
+    monkeypatch.setattr(fes_action, "RealtimeProfilePlay", Play)
+    monkeypatch.setattr(
+        fes_action,
+        "current_live_run",
+        lambda: SimpleNamespace(
+            disconnect_jump_requested=jump_requested,
+            recording_path=None,
+        ),
+    )
+    flow = _bare_flow()
+    flow.settings = dict(DEFAULT_SETTINGS)
+    flow.action_argv = lambda params: params
+    keys = []
+    started = []
+
+    class Controller:
+        def post_click_key(self, key):
+            keys.append(key)
+            return SimpleNamespace(wait=lambda: None)
+
+        def post_start_app(self, package):
+            started.append(package)
+            return SimpleNamespace(wait=lambda: None)
+
+    flow.context = SimpleNamespace(
+        tasker=SimpleNamespace(stopping=False, controller=Controller()),
+        run_recognition=lambda _node, _image: None,
+    )
+    return flow, keys, started
+
+
+def test_fes_play_jump_homes_without_reopening_game(monkeypatch):
+    flow, keys, started = _make_jump_flow(monkeypatch, jump_requested=True)
+
+    with pytest.raises(fes_action.FesLifeJumpHome, match="手动断网跳车"):
+        flow.play()
+    # 只发 KEYCODE_HOME 切桌面；绝不 post_start_app——游戏必须留在后台，
+    # 由玩家手动断网跳车（协力版会再切回游戏，Fes 版明确不切回）。
+    assert keys == [3]
+    assert started == []
+    assert fes_action._JUMP_HOME_DONE is True
+    # 复位避免污染其它用例（生产侧每轮 run() 入口也复位）。
+    fes_action._JUMP_HOME_DONE = False
+
+
+def test_fes_play_skips_jump_without_live_run_signal(monkeypatch):
+    flow, keys, started = _make_jump_flow(monkeypatch, jump_requested=False)
+
+    assert flow.play() is True
+    assert keys == []
+    assert started == []
+
+
+def test_fes_run_ends_on_jump_without_retry_or_recovery(monkeypatch):
+    flow = _bare_flow()
+    flow.settings = {"count": 5, "play_failure_retry_count": 9}
+    failures = []
+    monkeypatch.setattr(fes_action, "record_failure_reason", failures.append)
+    attempts = []
+
+    def attempt():
+        attempts.append(True)
+        raise fes_action.FesLifeJumpHome(
+            "生命归零，已切至模拟器桌面，请手动断网跳车"
+        )
+
+    flow.run_attempt = attempt
+    flow.recover_after_play_failure = lambda _reason: pytest.fail(
+        "跳车后禁止 recover（会把游戏从桌面拽回主页）"
+    )
+    assert flow.run() is False
+    assert len(attempts) == 1
+    assert failures and "手动断网跳车" in failures[0]
+
+
+def test_fes_run_jump_normalizes_post_play_exception(monkeypatch):
+    # 归零跳车信号已置位后的后续异常（原生门禁/清理等）也必须按跳车
+    # 收尾：切桌面、记录原因、结束任务，绝不进重试/恢复。
+    flow = _bare_flow()
+    flow.settings = {"count": 5, "play_failure_retry_count": 9}
+    failures = []
+    monkeypatch.setattr(fes_action, "record_failure_reason", failures.append)
+    monkeypatch.setattr(
+        fes_action,
+        "current_live_run",
+        lambda: SimpleNamespace(disconnect_jump_requested=True),
+    )
+    homes = []
+    flow._jump_home_desktop = lambda: homes.append(True)
+    recovered = []
+    flow.recover_after_play_failure = recovered.append
+
+    def attempt():
+        raise RuntimeError("native gate boom")
+
+    flow.run_attempt = attempt
+    assert flow.run() is False
+    assert homes == [True]
+    assert recovered == []
+    assert failures and "native gate boom" in failures[0]
+
+
+def test_fes_run_resets_jump_flag_per_task(monkeypatch):
+    monkeypatch.setattr(fes_action, "_JUMP_HOME_DONE", True)
+    flow = _bare_flow()
+    flow.settings = {"count": 1}
+    flow.run_attempt = lambda: True
+    flow.recover_after_play_failure = lambda _reason: pytest.fail(
+        "单轮成功后不应恢复"
+    )
+    assert flow.run() is True
+    assert fes_action._JUMP_HOME_DONE is False
+
+
+def test_fes_finalize_skips_recover_after_jump_home(monkeypatch):
+    calls = []
+
+    class _NoRecover:
+        def run(self, _context, _argv):
+            calls.append(True)
+            return True
+
+    monkeypatch.setattr(fes_action, "CommonRecover", _NoRecover)
+    monkeypatch.setattr(fes_action, "_JUMP_HOME_DONE", True)
+    context = SimpleNamespace(tasker=SimpleNamespace(stopping=False))
+    argv = SimpleNamespace(custom_action_param="{}")
+    assert fes_action.FesLiveFinalize().run(context, argv) is True
+    assert calls == []
 
 
 def load(path: Path):

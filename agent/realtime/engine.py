@@ -733,8 +733,8 @@ class RealtimeEngine:
                         if status is LifeStatus.DEAD:
                             life_depleted = True
                             if on_life_depleted is not None:
-                                # 协力“断网跳车”：生命归零立即请求跳出演奏
-                                # 循环，由外层执行跳车流程。回调只触发一次，
+                                # “断网跳车”（协力/Fes）：生命归零立即请求
+                                # 跳出演奏循环，由外层执行跳车收尾。回调只触发一次，
                                 # 随后终止本局，绝不继续向判定线发送按压。
                                 if not jump_requested:
                                     jump_requested = True

@@ -60,6 +60,15 @@ FES_MATCH_TIMEOUT_SECONDS = 300.0
 # 点“准备完毕”后所有人点完才开演，最长 30 秒倒计时自动开演。
 FES_READY_DEPARTURE_TIMEOUT_SECONDS = 90.0
 
+
+class FesLifeJumpHome(RuntimeError):
+    """Fes 生命归零：已切至模拟器桌面且游戏保留在后台，立即结束任务。"""
+
+
+# 跳车局守卫：FesLiveFinalize 见到该标记必须跳过 CommonRecover，否则会
+# 把正在桌面等玩家手动断网跳车的游戏拽回主页。每轮 run() 入口复位。
+_JUMP_HOME_DONE = False
+
 DEFAULT_SETTINGS: dict[str, object] = {
     "difficulty": "Expert",
     "count": 1,
@@ -108,8 +117,10 @@ def fes_play_params(
 ) -> dict[str, object]:
     """构造 RealtimeProfilePlay 的演奏参数，run_mode=fes。
 
-    骨架阶段沿用协力的演奏约束（等最终封面、成员下载窗口、结算导航），
-    但不启用任何协力专属机制（断网跳车、成员退出监听、结算后留在房间）。
+    骨架阶段沿用协力的演奏约束（等最终封面、成员下载窗口、结算导航）。
+    协力专属机制只启用“生命归零跳车请求”：数值生命确认归零后引擎在
+    归零帧立即停手并置位信号；切桌面保后台由 FesLiveFlow 外层执行
+    （不 post_start_app 切回游戏），成员退出监听与结算后留在房间仍不启用。
     """
     return {
         "difficulty": str(effective_difficulty or settings["difficulty"]),
@@ -129,6 +140,9 @@ def fes_play_params(
         "result_back_attempts": 30,
         "result_back_interval_seconds": 1.5,
         "continue_after_life_depleted": True,
+        # 生命归零跳车请求（引擎侧与协力共用）：数值生命条确认归零帧
+        # 回调一次并立即结束本局，绝不继续向判定线发送按压。
+        "life_depleted_jump_request": True,
         "run_mode": "fes",
         "confirm_final_cover": True,
         "native_prearm_deferred": True,
@@ -470,6 +484,47 @@ class FesLiveFlow:
             "（其他玩家未准备且倒计时未触发，或触控未送达）"
         )
 
+    def _jump_home_desktop(self) -> None:
+        """KEYCODE_HOME 切至模拟器桌面；游戏保留在后台，不重启不切回。
+
+        与协力版的关键差异：协力随后 post_start_app 切回游戏再由玩家
+        操作，Fes 版按需求留在桌面——游戏后台的演出现场就是玩家手动
+        断网跳车的窗口，任何失败都不允许触发重试/恢复把它拽回去。
+        """
+        global _JUMP_HOME_DONE
+        if _JUMP_HOME_DONE:
+            return
+        try:
+            append_current_run_event(
+                PROJECT_ROOT,
+                "jump",
+                "home-desktop",
+                details={
+                    "mode": "fes",
+                    "reason": "life-depleted",
+                    "relaunch_game": False,
+                },
+            )
+        except Exception as evidence_error:
+            print(
+                "FesLive jump_evidence_failed="
+                f"{type(evidence_error).__name__}: {evidence_error}",
+                flush=True,
+            )
+        try:
+            self.controller.post_click_key(3).wait()
+        except Exception as exc:
+            # 切桌面失败也绝不允许走重试/恢复：游戏必须留在演出现场。
+            print(
+                f"FesLive jump_home_failed={type(exc).__name__}: {exc}",
+                flush=True,
+            )
+        else:
+            # 留 0.6s 给桌面渲染（与协力跳车同一节奏），也让玩家看清交接。
+            time.sleep(0.6)
+            print("FesLive jump_home=true relaunch_game=false", flush=True)
+        _JUMP_HOME_DONE = True
+
     def play(self) -> bool:
         params = fes_play_params(
             self.settings,
@@ -479,7 +534,16 @@ class FesLiveFlow:
                 str(self.settings.get("difficulty", "Expert")),
             ),
         )
-        return bool(RealtimeProfilePlay().run(self.context, self.action_argv(params)))
+        success = bool(
+            RealtimeProfilePlay().run(self.context, self.action_argv(params))
+        )
+        run = current_live_run()
+        if run is not None and bool(run.disconnect_jump_requested):
+            # 生命归零：引擎已在归零帧停手并置位跳车信号。只切桌面、
+            # 不 post_start_app——游戏留在后台，由玩家手动断网跳车。
+            self._jump_home_desktop()
+            raise FesLifeJumpHome("生命归零，已切至模拟器桌面，请手动断网跳车")
+        return success
 
     def run_attempt(self) -> bool:
         self.enter_room()
@@ -526,6 +590,9 @@ class FesLiveFlow:
             )
 
     def run(self) -> bool:
+        global _JUMP_HOME_DONE
+        # 逐任务复位：上一局的跳车标记不得让后续任务跳过正常主页恢复。
+        _JUMP_HOME_DONE = False
         total = int(self.settings.get("count", 1))
         completed = 0
         play_failures = 0
@@ -544,7 +611,33 @@ class FesLiveFlow:
                 success = self.run_attempt()
             except InterruptedError:
                 raise
+            except FesLifeJumpHome as exc:
+                # 跳车已切桌面：记录可读原因结束任务，禁止重试与恢复。
+                record_failure_reason(str(exc))
+                print(
+                    f"[任务][团队演出 Fes][流程][ERROR] {exc}",
+                    flush=True,
+                )
+                return False
             except Exception as exc:
+                jump_run = current_live_run()
+                if jump_run is not None and bool(
+                    jump_run.disconnect_jump_requested
+                ):
+                    # 归零跳车信号已置位后的后续异常（原生门禁/清理等）
+                    # 不许进重试：recover_after_play_failure 会把游戏从
+                    # 桌面拽回主页，破坏手动断网跳车窗口。
+                    self._jump_home_desktop()
+                    failure = FesLifeJumpHome(
+                        "生命归零，已切至模拟器桌面，请手动断网跳车"
+                        f"（{type(exc).__name__}: {exc}）"
+                    )
+                    record_failure_reason(str(failure))
+                    print(
+                        f"[任务][团队演出 Fes][流程][ERROR] {failure}",
+                        flush=True,
+                    )
+                    return False
                 if play_failures >= retry_count:
                     raise
                 play_failures += 1
@@ -709,6 +802,15 @@ class FesLiveFinalize(CustomAction):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         try:
             if context.tasker.stopping:
+                return True
+            if _JUMP_HOME_DONE:
+                # 跳车局玩家正在桌面手动断网：CommonRecover 会把游戏从
+                # 后台拽回主页，必须跳过。正常链路 FesRun 失败即止走不到
+                # 这里，此守卫覆盖 ContinueRunningWhenError 仍开启的部署。
+                print(
+                    "FesLive finalize_skipped=jump-home-desktop",
+                    flush=True,
+                )
                 return True
             if not CommonRecover().run(context, argv):
                 print(
