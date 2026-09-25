@@ -216,6 +216,11 @@ class NativeStartPhotogate:
     # 死锁保险丝：60FPS 下约 10s 仍在拦截说明判据已不可信，放弃拦截
     # 退回普通触发——锚点可能提前，但绝不能像真机实测那样挂死零按键。
     _BROAD_BLOCK_MAX_EVENTS = 600
+    # 上穿武装窗：需连续这么多帧低于阈值才算“真安静”，挡住转场凹陷用
+    # 1 帧安静把 prev 归零、再把恢复帧当上穿（真机 Legendary 局：
+    # suppress×3 → 1 帧安静 → 33ms 后 interpolated 以 score=20.4 触发，
+    # 锚点落进转场中段）。
+    _QUIET_ARM_FRAMES = 8
 
     def __init__(
         self,
@@ -267,6 +272,13 @@ class NativeStartPhotogate:
         self._broad_block_enabled = bool(block_broad_change)
         self.broad_blocked_events = 0
         self.transition_suppressed_frames = 0
+        # 只有 fes（转场拦截启用且非协力弹窗）需要武装窗；单人/协力路径
+        # 的触发语义保持公式级不变。
+        self._requires_quiet_arm = bool(
+            self._broad_block_enabled and not self._popup_gate_enabled
+        )
+        self._quiet_streak = 0
+        self.quiet_armed_events = 0
         self._popup_detector = (
             popup_detector
             if popup_detector is not None
@@ -367,6 +379,8 @@ class NativeStartPhotogate:
             "photogate_broad_block": self._broad_block_enabled,
             "photogate_broad_blocked_events": self.broad_blocked_events,
             "photogate_transition_suppressed": self.transition_suppressed_frames,
+            "photogate_quiet_arm_frames": self._QUIET_ARM_FRAMES,
+            "photogate_quiet_armed": self.quiet_armed_events,
             "photogate_prepare_popup_enabled": self._popup_gate_enabled,
             "photogate_prepare_popup_frames": self.prepare_popup_frames,
             "photogate_prepare_popup_blocked_events": (
@@ -441,6 +455,20 @@ class NativeStartPhotogate:
             return None
         change_score = float(abs(current - self._last_color).sum())
         self.last_change_score = change_score
+        # 武装状态取本帧更新前的值：触发帧自己是高变化，必须以“此前已
+        # 连续安静 ≥8 帧”为准；高变化帧（含拦截/压制）清零连续计数。
+        quiet_armed = self._quiet_streak >= self._QUIET_ARM_FRAMES
+        if change_score < self._change_threshold:
+            if not quiet_armed:
+                self._quiet_streak += 1
+                if (
+                    self._requires_quiet_arm
+                    and self._quiet_streak >= self._QUIET_ARM_FRAMES
+                ):
+                    self.quiet_armed_events += 1
+                    self._record_event("quiet-armed", frame_s, change_score)
+        else:
+            self._quiet_streak = 0
 
         if not self.frozen:
             if change_score <= self._change_threshold:
@@ -539,6 +567,7 @@ class NativeStartPhotogate:
             self._previous_change is not None
             and self._previous_change < self._change_threshold <= change_score
             and self._previous_frame_s is not None
+            and (not self._requires_quiet_arm or quiet_armed)
         ):
             fraction = (
                 (self._change_threshold - self._previous_change)

@@ -715,10 +715,16 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
     assert gate.frozen is True
     assert gate.ignored_prelude_events == 0
 
+    # 上穿武装窗：转场定妆后需连续 ≥8 帧安静；转场凹陷的零星安静帧
+    # 不算武装（真机 Legendary 局 1 帧安静后 33ms 即触发的漏洞）。
+    for quiet_index in range(8):
+        assert gate.observe(settled, (483 + quiet_index) / 60.0) is None
+    assert gate.triggered is False
+
     # 真首音（新外观上的窄列变化）按插值 + 屏显延迟正常定位——死锁已解除。
     note_score = 3.0 * (150.0 / 1280.0) * 25.0
-    expected = 483 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    anchor = gate.observe(note_on_settled, 484 / 60.0)
+    expected = 490 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    anchor = gate.observe(note_on_settled, 491 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -733,6 +739,9 @@ def test_fes_photogate_blocks_intro_flash_and_triggers_on_real_note():
         )
         == 2
     )
+    assert report["photogate_quiet_arm_frames"] == 8
+    # 初始稳定段武装一次 + 转场定妆后重新武装一次。
+    assert report["photogate_quiet_armed"] == 2
 
 
 def test_fes_photogate_broad_block_gives_up_after_cap():
@@ -801,15 +810,16 @@ def test_fes_photogate_requires_upcross_after_transition_tail():
     assert gate.triggered is False
     assert gate.transition_suppressed_frames == 2
 
-    # 完全定妆的安静帧：把“下方上穿”重新武装。
-    assert gate.observe(settled, 123 / 60.0) is None
+    # 完全定妆的安静帧：连续 ≥8 帧武装窗后才算“下方上穿”就绪。
+    for quiet_index in range(8):
+        assert gate.observe(settled, (123 + quiet_index) / 60.0) is None
     assert gate.triggered is False
     assert gate.transition_suppressed_frames == 2
 
     # 真首音从阈值下方上穿：插值 + 屏显延迟正常定位。
     note_score = 3.0 * (160.0 / 1280.0) * 15.0
-    expected = 123 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
-    anchor = gate.observe(note, 124 / 60.0)
+    expected = 130 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    anchor = gate.observe(note, 131 / 60.0)
     assert gate.triggered is True
     assert gate.trigger_source == "interpolated-threshold-crossing"
     assert anchor == pytest.approx(expected, abs=1e-6)
@@ -818,6 +828,7 @@ def test_fes_photogate_requires_upcross_after_transition_tail():
     assert report["photogate_broad_block"] is True
     assert report["photogate_broad_blocked_events"] == 1
     assert report["photogate_transition_suppressed"] == 2
+    assert report["photogate_quiet_armed"] == 2
 
 
 def test_fes_photogate_direct_suppression_bails_out_at_cap():
@@ -860,6 +871,73 @@ def test_fes_photogate_direct_suppression_bails_out_at_cap():
     assert gate.trigger_source == "direct-threshold"
     assert anchor == pytest.approx((121 + limit) / 60 + 0.190, abs=1e-9)
     assert gate.report()["photogate_transition_suppressed"] == limit
+
+
+def test_fes_photogate_requires_sustained_quiet_to_arm():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=0.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    transition = stable.copy()
+    transition[510:536, :, :] = 60
+    with_element = stable.copy()
+    with_element[510:536, :, :] = 60
+    with_element[510:536, 600:760, :] = 80
+    settled = stable.copy()
+    settled[510:536, :, :] = 60
+    note = settled.copy()
+    note[510:536, 600:760, :] = 75
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    # 过场：宽列拦截 → 两个窄列高变化压制。
+    assert gate.observe(transition, 120 / 60.0) is None
+    assert gate.observe(with_element, 121 / 60.0) is None
+    assert gate.observe(settled, 122 / 60.0) is None
+    assert gate.transition_suppressed_frames == 2
+
+    # 转场凹陷：单独 1 帧安静（prev 归零）——不足以武装。
+    assert gate.observe(settled, 123 / 60.0) is None
+    assert gate.triggered is False
+
+    # 转场恢复帧：上穿候选但武装不足 → 必须压制（真机 Legendary 局
+    # 正是这一步放行，33ms 后以 score=20.4 触发假锚）。
+    assert gate.observe(with_element, 124 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.transition_suppressed_frames == 3
+
+    # 残留消失帧（相对带元素帧仍是高变化）：继续压制。
+    assert gate.observe(settled, 125 / 60.0) is None
+    assert gate.transition_suppressed_frames == 4
+    assert gate.triggered is False
+
+    # 连续 ≥8 帧真安静 → 武装完成。
+    for quiet_index in range(8):
+        assert gate.observe(settled, (126 + quiet_index) / 60.0) is None
+    assert gate.triggered is False
+
+    # 真首音上穿：插值 + 屏显延迟定位。
+    note_score = 3.0 * (160.0 / 1280.0) * 15.0
+    expected = 133 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    anchor = gate.observe(note, 134 / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_broad_blocked_events"] == 1
+    assert report["photogate_transition_suppressed"] == 4
+    assert report["photogate_quiet_arm_frames"] == 8
+    assert report["photogate_quiet_armed"] == 2
+    events = [event["event"] for event in report["photogate_events"]]
+    assert events.count("direct-suppressed") == 4
+    assert events[-1] == "trigger"
 
 
 def test_single_photogate_intro_flash_behavior_unchanged():
