@@ -261,10 +261,12 @@ class NativeStartPhotogate:
         if suppress_prepare_popup is None:
             suppress_prepare_popup = str(mode).startswith("cooperative")
         self._popup_gate_enabled = bool(suppress_prepare_popup)
-        # Fes 进场画面转场用同一套宽列结构判据拦截，但不走弹窗检测器，
-        # 恢复策略见 observe 中的粘性分支（保持冻结基线）。
+        # Fes 进场画面转场用同一套宽列结构判据拦截（不走弹窗检测器），
+        # 拦截帧逐帧重基线；转场尾帧的高变化只允许“阈值下方上穿”触发，
+        # 被压制的直触帧单独计数，累计到保险丝后退化为直接触发。
         self._broad_block_enabled = bool(block_broad_change)
         self.broad_blocked_events = 0
+        self.transition_suppressed_frames = 0
         self._popup_detector = (
             popup_detector
             if popup_detector is not None
@@ -364,6 +366,7 @@ class NativeStartPhotogate:
             "photogate_last_change_score": self.last_change_score,
             "photogate_broad_block": self._broad_block_enabled,
             "photogate_broad_blocked_events": self.broad_blocked_events,
+            "photogate_transition_suppressed": self.transition_suppressed_frames,
             "photogate_prepare_popup_enabled": self._popup_gate_enabled,
             "photogate_prepare_popup_frames": self.prepare_popup_frames,
             "photogate_prepare_popup_blocked_events": (
@@ -522,6 +525,16 @@ class NativeStartPhotogate:
 
         trigger_s: float | None = None
         trigger_source: str | None = None
+        # Fes 进场画面的转场尾帧与真首音同为“高变化”，但只有从阈值下方
+        # 再次上穿才像音符：转场是连续多帧高变化，拦截分支作废 prev 后
+        # 若仍允许 direct 兜底，转场的下一帧会立即开火（真机实测拦截后
+        # 16ms 以 score=51.4 触发，锚点比真首音早 1.1s）。因此 fes 模式
+        # 只认 interpolated 上穿；压制帧累计到保险丝后退化为直接触发，
+        # 与宽列拦截同一哲学：宁可早锚，不许挂死。单人/协力不变。
+        allow_direct = (
+            not (self._broad_block_enabled and not self._popup_gate_enabled)
+            or self.transition_suppressed_frames >= self._BROAD_BLOCK_MAX_EVENTS
+        )
         if (
             self._previous_change is not None
             and self._previous_change < self._change_threshold <= change_score
@@ -535,9 +548,20 @@ class NativeStartPhotogate:
                 frame_s - self._previous_frame_s
             )
             trigger_source = "interpolated-threshold-crossing"
-        elif change_score >= self._change_threshold:
+        elif change_score >= self._change_threshold and allow_direct:
             trigger_s = frame_s
             trigger_source = "direct-threshold"
+        elif (
+            change_score >= self._change_threshold
+            and self._broad_block_enabled
+            and not self._popup_gate_enabled
+        ):
+            self.transition_suppressed_frames += 1
+            self._record_event(
+                "direct-suppressed",
+                frame_s,
+                change_score,
+            )
 
         if trigger_s is not None:
             self.triggered = True

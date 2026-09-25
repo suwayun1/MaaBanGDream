@@ -761,6 +761,107 @@ def test_fes_photogate_broad_block_gives_up_after_cap():
     assert gate.broad_blocked_events == NativeStartPhotogate._BROAD_BLOCK_MAX_EVENTS
 
 
+def test_fes_photogate_requires_upcross_after_transition_tail():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=0.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    transition = stable.copy()
+    transition[510:536, :, :] = 60
+    tail = stable.copy()
+    tail[510:536, :, :] = 60
+    tail[510:536, 600:760, :] = 80
+    settled = stable.copy()
+    settled[510:536, :, :] = 60
+    note = settled.copy()
+    note[510:536, 600:760, :] = 75
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.frozen is True
+
+    # 过场开始：宽列拦截 + 逐帧重基线。
+    assert gate.observe(transition, 120 / 60.0) is None
+    assert gate.broad_blocked_events == 1
+
+    # 转场尾帧：prev 已作废且变化 ≥ 阈值——修复前 direct 兜底会在这里
+    # 开火（真机实测拦截后 16ms、score=51.4、锚点提前 1.1s），必须压制。
+    assert gate.observe(tail, 121 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.transition_suppressed_frames == 1
+
+    # 残留元素消失帧：相对残留仍是高变化，同样不许当成上穿。
+    assert gate.observe(settled, 122 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.transition_suppressed_frames == 2
+
+    # 完全定妆的安静帧：把“下方上穿”重新武装。
+    assert gate.observe(settled, 123 / 60.0) is None
+    assert gate.triggered is False
+    assert gate.transition_suppressed_frames == 2
+
+    # 真首音从阈值下方上穿：插值 + 屏显延迟正常定位。
+    note_score = 3.0 * (160.0 / 1280.0) * 15.0
+    expected = 123 / 60 + (3.0 / note_score) * (1 / 60) + 0.190
+    anchor = gate.observe(note, 124 / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "interpolated-threshold-crossing"
+    assert anchor == pytest.approx(expected, abs=1e-6)
+
+    report = gate.report()
+    assert report["photogate_broad_block"] is True
+    assert report["photogate_broad_blocked_events"] == 1
+    assert report["photogate_transition_suppressed"] == 2
+
+
+def test_fes_photogate_direct_suppression_bails_out_at_cap():
+    gate = NativeStartPhotogate(
+        stable_duration_ms=250.0,
+        grace_ms=0.0,
+        change_threshold=3.0,
+        latency_ms=190.0,
+        mode="fes-playfield-intro",
+        block_broad_change=True,
+        playfield_detector=lambda _image: True,
+    )
+    stable = np.full((720, 1280, 3), 30, dtype=np.uint8)
+    transition = stable.copy()
+    transition[510:536, :, :] = 60
+    chatter_a = stable.copy()
+    chatter_a[510:536, :, :] = 60
+    chatter_a[510:536, 600:760, :] = 80
+    chatter_b = stable.copy()
+    chatter_b[510:536, :, :] = 60
+    chatter_b[510:536, 600:760, :] = 70
+
+    for index in range(17):
+        assert gate.observe(stable, index / 60.0) is None
+    assert gate.observe(transition, 120 / 60.0) is None
+
+    # 两帧交替的窄列高变化：逐帧变化恒 ≥ 阈值、列占比恒非宽列，
+    # 每帧压制 direct 直到保险丝。
+    limit = NativeStartPhotogate._BROAD_BLOCK_MAX_EVENTS
+    for index in range(limit):
+        frame = chatter_a if index % 2 == 0 else chatter_b
+        assert gate.observe(frame, (121 + index) / 60.0) is None
+    assert gate.triggered is False
+    assert gate.transition_suppressed_frames == limit
+    assert gate.broad_blocked_events == 1
+
+    # 保险丝耗尽：退化为直接触发，宁可早锚也不许挂死。
+    anchor = gate.observe(chatter_a, (121 + limit) / 60.0)
+    assert gate.triggered is True
+    assert gate.trigger_source == "direct-threshold"
+    assert anchor == pytest.approx((121 + limit) / 60 + 0.190, abs=1e-9)
+    assert gate.report()["photogate_transition_suppressed"] == limit
+
+
 def test_single_photogate_intro_flash_behavior_unchanged():
     gate = NativeStartPhotogate(
         stable_duration_ms=250.0,
