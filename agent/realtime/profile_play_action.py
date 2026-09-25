@@ -48,6 +48,7 @@ from .profile_store import (
     RealtimeProfileStore,
     RuntimeSettings,
     engine_from_native_flag,
+    song_timing_offset_ms,
 )
 from .rehearsal_action import frame_resolution
 from .result_navigation import (
@@ -2405,6 +2406,22 @@ class RealtimeProfilePlay(CustomAction):
         touch = None
         native_backend = None
         try:
+            base_timing_offset_ms = int(timing_offset_ms)
+            timing_offset_ms = song_timing_offset_ms(
+                timing_offset_ms,
+                runtime_options,
+                None if selected_chart is None else selected_chart.path,
+            )
+            if timing_offset_ms != base_timing_offset_ms:
+                # 逐曲覆盖必须在 native configure 与 planner 之前生效；
+                # 下方两处共用本变量，改这一处即全线生效。
+                print(
+                    "RealtimeProfilePlay song_timing_offset "
+                    f"base={base_timing_offset_ms} "
+                    f"applied={timing_offset_ms} "
+                    f"chart={selected_chart.path}",
+                    flush=True,
+                )
             if native_requested:
                 if selected_chart is None:
                     discard_prearmed_backend("profile-native-chart-missing")
