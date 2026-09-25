@@ -239,6 +239,9 @@ class NativeStartPhotogate:
     _SETTLE_MAX_REJECTS = 60
     # 音符头部只改变一条轨道附近的少数列：宽到跨两轨以上、或变化块
     # 中心不在任何轨道中心附近的高变化只能是转场构件，不进验证直接拒。
+    # 下限防像素级微光：轨道上不足 40 列的高亮（15 列 120Δ 微光带均值
+    # change≈42，远超阈值且中心恰在轨道上）不是音符，必须挡在候选外。
+    _SHAPE_MIN_COLUMNS = 40
     _SHAPE_MAX_COLUMNS = 240
     _SHAPE_CENTER_TOLERANCE = 60.0
 
@@ -673,68 +676,163 @@ class NativeStartPhotogate:
                 (column_change >= self._BROAD_COLUMN_MIN).sum()
             )
             if broad_columns >= self._BROAD_COLUMN_FRACTION * image.shape[1]:
-                self.broad_blocked_events += 1
-                self._record_event(
-                    "broad-change-blocked",
-                    frame_s,
-                    change_score,
+                # 基线漂移吸收：本帧活动本身很窄（低于宽列线）而对冻结基线
+                # 却呈宽差，说明是此前被压制的窄变化在基线上累积了漂移，
+                # 本帧不是转场——真首音帧对基线差 460 列被误拦会让
+                # prev=None 掉到 note2 才锚、晚一个 IOI（回归实测）。吸收
+                # 漂移重基线后放行到候选逻辑，真首音当帧成候选。
+                f2f_activity = (
+                    int(
+                        (
+                            np.abs(
+                                current_columns - self._last_columns
+                            ).sum(axis=1)
+                            >= self._BROAD_COLUMN_MIN
+                        ).sum()
+                    )
+                    if self._last_columns is not None
+                    else int(image.shape[1])
                 )
-                if self._popup_gate_enabled:
-                    # 协力弹窗消失后有数秒安静期，可整段重置等重新稳定。
-                    self._reset_band_state()
+                drift_only = (
+                    not self._popup_gate_enabled
+                    and f2f_activity
+                    < self._BROAD_COLUMN_FRACTION * image.shape[1]
+                )
+                if drift_only:
+                    self._frozen_columns = current_columns
+                else:
+                    self.broad_blocked_events += 1
+                    self._record_event(
+                        "broad-change-blocked",
+                        frame_s,
+                        change_score,
+                    )
+                    if self._popup_gate_enabled:
+                        # 协力弹窗消失后有数秒安静期，可整段重置等重新稳定。
+                        self._reset_band_state()
+                        return None
+                    # Fes 进场转场会让判定带外观在转场后永久变化（基线抓在
+                    # 进场画面期间）：锁死旧基线会把包括真首音在内的每一帧
+                    # 都判成宽列而挂死（真机实测 blocked=3064）。因此拦截
+                    # 转场帧的同时把基线切到当前帧：逐帧吸收动画，定妆后
+                    # 即恢复安静判定，真首音（窄列变化）正常插值触发。
+                    self._last_color = current
+                    self._last_columns = current_columns
+                    self._frozen_columns = current_columns
+                    self._previous_change = None
+                    self._previous_frame_s = frame_s
                     return None
-                # Fes 进场转场会让判定带外观在转场后永久变化（基线抓在
-                # 进场画面期间）：锁死旧基线会把包括真首音在内的每一帧
-                # 都判成宽列而挂死（真机实测 blocked=3064）。因此拦截
-                # 转场帧的同时把基线切到当前帧：逐帧吸收动画，定妆后
-                # 即恢复安静判定，真首音（窄列变化）正常插值触发。
-                self._last_color = current
-                self._last_columns = current_columns
-                self._frozen_columns = current_columns
-                self._previous_change = None
-                self._previous_frame_s = frame_s
-                return None
 
         trigger_s: float | None = None
         trigger_source: str | None = None
-        # Fes 进场画面的转场尾帧与真首音同为“高变化”，但只有从阈值下方
-        # 再次上穿才像音符：转场是连续多帧高变化，拦截分支作废 prev 后
-        # 若仍允许 direct 兜底，转场的下一帧会立即开火（真机实测拦截后
-        # 16ms 以 score=51.4 触发，锚点比真首音早 1.1s）。因此 fes 模式
-        # 只认 interpolated 上穿；压制帧累计到保险丝后退化为直接触发，
-        # 与宽列拦截同一哲学：宁可早锚，不许挂死。单人/协力不变。
+        # 转场尾帧曾在拦截后 16ms 以 score=51.4 直接开火（锚点早 1.1s），
+        # direct 兜底只在压制保险丝熔断后启用；fes 非熔断路径由下方结构
+        # 判据主触发。单人/协力保持既有上穿/直接链，公式级不变。
         allow_direct = (
             not (self._broad_block_enabled and not self._popup_gate_enabled)
             or self.transition_suppressed_frames >= self._BROAD_BLOCK_MAX_EVENTS
         )
-        if (
-            self._previous_change is not None
-            and self._previous_change < self._change_threshold <= change_score
-            and self._previous_frame_s is not None
-            and (not self._requires_quiet_arm or quiet_armed)
-        ):
-            fraction = (
-                (self._change_threshold - self._previous_change)
-                / max(change_score - self._previous_change, 1e-9)
+        structural_path_active = (
+            self._requires_settle
+            and not self._fuse_exhausted()
+            and current_columns is not None
+            and self._last_columns is not None
+        )
+        if structural_path_active:
+            # v6 结构主触发：真首音入带必然留下“40..240 列、中心距轨道
+            # ≤60px、每列 ≥45”的列结构，1-2 帧后即回到背景；宽转场已被
+            # 宽列分支拦截，弥散微光每列不足 45 不成结构。此前依赖 prev
+            # 上穿 + 133ms 武装窗的候选前置在真机 YAPPY 局结构性失效：
+            # 宽后判带帧间变化恒 ≥ 阈值、221 帧全被压制、武装 4 次全在
+            # 稳定期、photogate 18s 未触发 0 按压挂机。结构判据 + 下方
+            # prev 双态门：恒噪世界音符总跟在噪声帧后（prev 高）当帧即
+            # 候选；静默世界靠武装窗放行；prev=None/短安静的转场瞬态在
+            # 门上就挡（51.4 假锚、凹陷恢复），settle 再兜静态残留与消失帧。
+            column_f2f = np.abs(
+                current_columns - self._last_columns
+            ).sum(axis=1)
+            hit_columns = np.nonzero(column_f2f >= self._BROAD_COLUMN_MIN)[0]
+            shape_width = int(hit_columns.size)
+            shape_ok = False
+            if (
+                self._SHAPE_MIN_COLUMNS
+                <= shape_width
+                <= self._SHAPE_MAX_COLUMNS
+            ):
+                shape_center = float(hit_columns.mean())
+                lane_centers = (
+                    np.asarray(LANE_CENTERS, dtype="float64")
+                    * (image.shape[1] / 1280.0)
+                )
+                shape_ok = (
+                    float(np.abs(lane_centers - shape_center).min())
+                    <= self._SHAPE_CENTER_TOLERANCE
+                )
+            # v6.1 prev 双态门：真首音与转场瞬态在像素上同构（都可能是
+            # 1 帧、窄列、居轨、随后回帧），只能靠上下文分开。prev=高变化
+            # → 放行（恒噪世界）；prev=安静且武装 ≥8 帧 → 放行（静默世界
+            # 首音）；prev=None（宽列拦截后第一帧：真机 51.4 假锚/尾帧）
+            # 与 prev 安静不足 8 帧（Legendary 凹陷恢复）一律不成候选。
+            prev_gate_ok = self._previous_change is not None and (
+                self._previous_change >= self._change_threshold or quiet_armed
             )
-            trigger_s = self._previous_frame_s + fraction * (
-                frame_s - self._previous_frame_s
-            )
-            trigger_source = "interpolated-threshold-crossing"
-        elif change_score >= self._change_threshold and allow_direct:
-            trigger_s = frame_s
-            trigger_source = "direct-threshold"
-        elif (
-            change_score >= self._change_threshold
-            and self._broad_block_enabled
-            and not self._popup_gate_enabled
-        ):
-            self.transition_suppressed_frames += 1
-            self._record_event(
-                "direct-suppressed",
-                frame_s,
-                change_score,
-            )
+            if shape_ok and prev_gate_ok:
+                # 恰逢阈值下方上穿时保留亚帧插值精度，否则用本帧时刻
+                # （±16ms 由 timing_offset 学习吸收）。
+                if (
+                    self._previous_change is not None
+                    and self._previous_change < self._change_threshold
+                    <= change_score
+                    and self._previous_frame_s is not None
+                ):
+                    fraction = (
+                        (self._change_threshold - self._previous_change)
+                        / max(change_score - self._previous_change, 1e-9)
+                    )
+                    trigger_s = self._previous_frame_s + fraction * (
+                        frame_s - self._previous_frame_s
+                    )
+                    trigger_source = "interpolated-threshold-crossing"
+                else:
+                    trigger_s = frame_s
+                    trigger_source = "shape-structural"
+            elif change_score >= self._change_threshold:
+                self.transition_suppressed_frames += 1
+                self._record_event(
+                    "direct-suppressed",
+                    frame_s,
+                    change_score,
+                )
+        else:
+            # 非 fes、结构保险丝熔断或列信息缺失：保持既有上穿/直接链。
+            if (
+                self._previous_change is not None
+                and self._previous_change < self._change_threshold <= change_score
+                and self._previous_frame_s is not None
+                and (not self._requires_quiet_arm or quiet_armed)
+            ):
+                fraction = (
+                    (self._change_threshold - self._previous_change)
+                    / max(change_score - self._previous_change, 1e-9)
+                )
+                trigger_s = self._previous_frame_s + fraction * (
+                    frame_s - self._previous_frame_s
+                )
+                trigger_source = "interpolated-threshold-crossing"
+            elif change_score >= self._change_threshold and allow_direct:
+                trigger_s = frame_s
+                trigger_source = "direct-threshold"
+            elif (
+                change_score >= self._change_threshold
+                and self._broad_block_enabled
+                and not self._popup_gate_enabled
+            ):
+                self.transition_suppressed_frames += 1
+                self._record_event(
+                    "direct-suppressed",
+                    frame_s,
+                    change_score,
+                )
 
         defer_for_settle = False
         if trigger_s is not None:

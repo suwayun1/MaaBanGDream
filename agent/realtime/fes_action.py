@@ -465,6 +465,7 @@ class FesLiveFlow:
         )
         started = time.monotonic()
         deadline = started + timeout
+        next_heartbeat_s = 10.0
         while time.monotonic() < deadline:
             if self.stopped():
                 raise InterruptedError("用户已停止任务")
@@ -479,6 +480,30 @@ class FesLiveFlow:
                     flush=True,
                 )
                 return
+            elapsed = time.monotonic() - started
+            if elapsed >= next_heartbeat_s:
+                # 真机 2026-09-26 02:12 局：点完 42s 零输出，房间未满/点击
+                # 未生效/被弹窗挡住三种死法外观相同，人工无从判读。每 10s
+                # 打一行在场证据，静默等待变成可诊断状态。
+                ready_visible = bool(self._ocr_box(
+                    image,
+                    "准备完毕",
+                    roi=(700, 500, 580, 220),
+                    threshold=0.4,
+                ))
+                hint = (
+                    "确认页仍在（准备按钮可见）"
+                    if ready_visible
+                    else "确认页已变化（可能已就绪等他人或被弹窗遮挡）"
+                )
+                print(
+                    f"FesLive ready_waiting elapsed={elapsed:.0f}s "
+                    "now_loading=false "
+                    f"ready_button={str(ready_visible).lower()} "
+                    f"hint={hint}",
+                    flush=True,
+                )
+                next_heartbeat_s += 10.0
         raise RuntimeError(
             f"点击准备完毕后 {timeout:.0f} 秒内未离开最终确认页"
             "（其他玩家未准备且倒计时未触发，或触控未送达）"
