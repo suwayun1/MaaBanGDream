@@ -30,6 +30,7 @@ from .live_session import (
     current_live_run,
 )
 from .performance_settings_action import RealtimePerformanceSettingsGate
+from .playfield_monitor import PlayfieldDetector
 from .profile_play_action import RealtimeProfilePlay
 from .profile_store import RealtimeProfileStore
 
@@ -467,23 +468,44 @@ class FesLiveFlow:
             f"point=({FES_READY_POINT[0]},{FES_READY_POINT[1]})",
             flush=True,
         )
+        # 兜底开演检测：NOW LOADING 被漏掉/跳过时（真机 2026-09-27 00:10 局，
+        # ready 等待挂死 90s、引擎从未启动 → 不读谱 + 生命归零不跳桌面），直接
+        # 认“已进入演奏场”交棒给 play()。确认页是名册+难度、无 7 轨白色判定线，
+        # PlayfieldDetector（生命条 + ≥6 轨白判定）不会误触发；即便极端误触发，
+        # play() 的 photogate 也会在真首音前静默等待，优雅降级不致挂死。
+        playfield_detector = PlayfieldDetector()
+        playfield_seen = 0
         started = time.monotonic()
         deadline = started + timeout
         next_heartbeat_s = 10.0
         while time.monotonic() < deadline:
             if self.stopped():
                 raise InterruptedError("用户已停止任务")
-            time.sleep(1.0)
+            time.sleep(0.5)
             image = self.capture()
             if self._ocr_box(
                 image, "NOW LOADING", roi=(0, 300, 1280, 300), threshold=0.4,
             ):
                 print(
-                    "FesLive ready_departed=true "
+                    "FesLive ready_departed=true signal=loading "
                     f"elapsed={time.monotonic() - started:.1f}s",
                     flush=True,
                 )
                 return
+            # 兜底：loading 没等到但演奏场已成立 = 已开演，立即交棒，绝不让
+            # ready 等待把引擎饿死（引擎不启动 → 不读谱 + 生命归零不跳桌面）。
+            # 连续 2 帧确认，滤掉转场瞬间的误命中。
+            if playfield_detector(image):
+                playfield_seen += 1
+                if playfield_seen >= 2:
+                    print(
+                        "FesLive ready_departed=true signal=playfield "
+                        f"elapsed={time.monotonic() - started:.1f}s",
+                        flush=True,
+                    )
+                    return
+            else:
+                playfield_seen = 0
             elapsed = time.monotonic() - started
             if elapsed >= next_heartbeat_s:
                 # 真机 2026-09-26 02:12 局：点完 42s 零输出，房间未满/点击

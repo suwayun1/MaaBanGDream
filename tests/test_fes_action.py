@@ -457,6 +457,27 @@ def test_fes_ready_up_times_out_if_page_never_departs():
         flow._ready_up_and_wait()
 
 
+def test_fes_ready_up_departs_on_playfield_when_loading_missed(monkeypatch):
+    # NOW LOADING 永不出现（loading 被漏/跳过，真机 2026-09-27 00:10 局根因）
+    # 时，必须在演奏场成立后立即交棒，绝不挂死让引擎饿死——引擎不启动 =
+    # 不读谱 + 生命归零不跳桌面（两个症状同源）。
+    flow = _bare_flow()
+    flow.ready_departure_timeout_seconds = 10.0
+    flow.capture = lambda: None
+    clicks = []
+    flow.click = clicks.append
+    flow._ocr_box = _ocr_stub({
+        "准备完毕": _box(x=1000, y=600, w=80, h=40),
+        "NOW LOADING": None,
+    })
+    monkeypatch.setattr(
+        "agent.realtime.fes_action.PlayfieldDetector",
+        lambda: (lambda _image: True),
+    )
+    flow._ready_up_and_wait()
+    assert clicks == [(1123, 630)]
+
+
 def test_fes_pipeline_contract():
     pipeline = load(ROOT / "resource" / "pipeline" / "fes_live.json")
     interface = load(ROOT / "interface.json")
