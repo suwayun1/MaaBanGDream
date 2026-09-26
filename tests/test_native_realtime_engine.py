@@ -1778,6 +1778,123 @@ def test_result_payload_exposes_native_session_counts():
     assert payload["native"]["executed"] == 632
 
 
+def test_engine_feeds_concurrent_cover_during_photogate_wait_and_decides_at_anchor(monkeypatch):
+    class Clock:
+        value = 0.0
+
+        def __call__(self) -> float:
+            return self.value
+
+    class NativeBackend:
+        exclusive = True
+        active = False
+        observed_at: list[float] = []
+        started_at: float | None = None
+
+        @property
+        def takeover(self) -> bool:
+            return True
+
+        def arm(self) -> None:
+            pass
+
+        def observe_start_frame(self, image, now: float) -> float | None:
+            self.observed_at.append(now)
+            return now + 0.030 if len(self.observed_at) == 3 else None
+
+        def start(self, anchor_s: float) -> None:
+            assert decided, "并发封面必须在 start()（首拍派发）之前完成裁决"
+            self.active = True
+            self.started_at = anchor_s
+
+        def poll(self, now: float) -> None:
+            assert self.active
+
+        def stop(self) -> None:
+            pass
+
+        def report(self) -> dict[str, object]:
+            return {
+                "planned": 1,
+                "sent": 1,
+                "executed": 1,
+                "action_counts": {"tap": 1},
+            }
+
+    class ForbiddenDetector:
+        def detect(self, image, now):
+            raise AssertionError("photogate 前后均不得运行音符检测")
+
+    class ForbiddenPlanner:
+        timing_offset_ms = 0
+
+        def update(self, notes, now):
+            raise AssertionError("photogate 前后均不得运行 planner")
+
+        def reset(self, now):
+            raise AssertionError("Native 不得运行 Legacy cleanup")
+
+    class Touch:
+        def dispatch(self, actions):
+            raise AssertionError("并发封面等待期也不得派发 Legacy 输入")
+
+        def close(self):
+            pass
+
+    backend = NativeBackend()
+    sentinel = object()
+    fed: list[np.ndarray] = []
+    decided = False
+
+    class PostStartLifeDetector:
+        def detect(self, image):
+            assert backend.active, "photogate 触发前只允许截图与首拍检测"
+            return LifeReading(True, 1000)
+
+    clock = Clock()
+    monkeypatch.setattr(
+        "agent.realtime.engine.time.sleep",
+        lambda seconds: setattr(clock, "value", clock.value + seconds),
+    )
+    engine = RealtimeEngine(
+        ForbiddenDetector(),
+        ForbiddenPlanner(),
+        Touch(),
+        clock,
+        life_detector=PostStartLifeDetector(),
+        life_guard=LifeGuard(confirm_frames=1),
+        native_backend=backend,
+    )
+
+    def capture() -> np.ndarray:
+        clock.value += 0.002
+        return np.zeros((720, 1280, 3), dtype=np.uint8)
+
+    def observer(image) -> None:
+        # photogate 等待期喂帧必须发生在 start() 之前。
+        assert not backend.active
+        fed.append(image)
+
+    def decider(image, now):
+        nonlocal decided
+        decided = True
+        return sentinel
+
+    stats = engine.run(
+        capture,
+        lambda: False,
+        duration_seconds=1,
+        target_fps=60,
+        final_cover_observer=observer,
+        final_cover_decider=decider,
+    )
+
+    assert fed, "photogate 等待期必须把帧交给并发封面观察者"
+    assert decided
+    assert stats.final_cover_outcome is sentinel
+    assert backend.started_at == pytest.approx(backend.observed_at[2] + 0.030)
+
+
 def test_native_backend_publishes_first_chunk_from_photogate_anchor(monkeypatch):
     actions = [
         {

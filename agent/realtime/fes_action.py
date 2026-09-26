@@ -143,6 +143,10 @@ def fes_play_params(
         # 生命归零跳车请求（引擎侧与协力共用）：数值生命条确认归零帧
         # 回调一次并立即结束本局，绝不继续向判定线发送按压。
         "life_depleted_jump_request": True,
+        # 并发最终封面确认：photogate 等待段 15Hz 观察封面、首拍锚点帧
+        # 一次性裁决（确认→更新身份；未确认→保留准备页谱面降级），谱面
+        # 预加载不再被阻塞等待卡住（约 5.7 秒），裁决先于首拍派发。
+        "final_cover_concurrent": True,
         "run_mode": "fes",
         "confirm_final_cover": True,
         "native_prearm_deferred": True,

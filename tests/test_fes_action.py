@@ -70,6 +70,9 @@ def test_fes_play_params_declare_fes_run_mode():
     # 生命归零跳车请求已启用（引擎归零帧停手置位，切桌面由外层执行）；
     # 其余协力专属机制（结算拖沓等）仍不启用。
     assert params["life_depleted_jump_request"] is True
+    # 并发最终封面：photogate 等待期观察、锚点帧裁决，谱面预加载不再
+    # 被封面阻塞等待卡住。
+    assert params["final_cover_concurrent"] is True
     assert "defer_result_collection" not in params
 
 
