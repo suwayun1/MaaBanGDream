@@ -4,7 +4,8 @@
     [string]$EnvironmentName = 'maabangdream',
     [switch]$OrderedStartupTrial,
     [switch]$NativeTimingTrial,
-    [switch]$DisableNativeTimingCompensation
+    [switch]$DisableNativeTimingCompensation,
+    [switch]$DeployCustomMfa
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +24,12 @@ if (-not $CondaRoot) {
     $CondaRoot = Join-Path $workspaceRoot '.tools\Miniconda3'
 }
 
+# v1.4.4 起主程序由 MFAAvalonia.exe 改名为 MaaBanGDream.exe。优先使用新名，
+# 保留旧名回退，便于同一脚本同时服务新发行包和旧的开发运行目录。
 $mfaExe = Join-Path $MfaRoot 'MFAAvalonia.exe'
+if (Test-Path -LiteralPath (Join-Path $MfaRoot 'MaaBanGDream.exe')) {
+    $mfaExe = Join-Path $MfaRoot 'MaaBanGDream.exe'
+}
 $sourceInterface = Join-Path $projectRoot 'interface.json'
 $sourceResource = Join-Path $projectRoot 'resource'
 $deployedInterface = Join-Path $MfaRoot 'interface.json'
@@ -55,7 +61,7 @@ foreach ($required in ($mfaExe, $sourceInterface, $sourceResource, $python, $age
 $resolvedTargetMfaPath = (Resolve-Path -LiteralPath $mfaExe).ProviderPath
 $targetMfaProcesses = @()
 $otherMfaProcesses = @()
-Get-CimInstance Win32_Process -Filter "Name = 'MFAAvalonia.exe'" | ForEach-Object {
+Get-CimInstance Win32_Process -Filter "Name = 'MFAAvalonia.exe' OR Name = 'MaaBanGDream.exe'" | ForEach-Object {
     $runningPath = $_.ExecutablePath
     if ([string]::IsNullOrWhiteSpace($runningPath)) {
         $otherMfaProcesses += [PSCustomObject]@{
@@ -65,7 +71,7 @@ Get-CimInstance Win32_Process -Filter "Name = 'MFAAvalonia.exe'" | ForEach-Objec
     }
     else {
         $fullRunningPath = (Resolve-Path -LiteralPath $runningPath).ProviderPath
-        if ($fullRunningPath -ieq $resolvedTargetMfaPath) {
+        if ((Split-Path -Parent $fullRunningPath) -ieq (Split-Path -Parent $resolvedTargetMfaPath)) {
             $targetMfaProcesses += $_
         }
         else {
@@ -295,7 +301,13 @@ if (Test-Path -LiteralPath $instanceConfigDirectory) {
 # MFAAvalonia 2.12.0 checks a failed Maa job before its cancellation token.
 # With strict failure propagation enabled, that race reports a user stop as a
 # failure. Deploy the pinned one-line upstream-compatible status fix once.
-& $mfaStopStatusPatch -MfaRoot $MfaRoot
+# 该补丁依赖定制 MFAAvalonia 源码（feature/performance-visual-settings）并从
+# 源码编译覆盖 MFAAvalonia.Core.dll；当前开发运行目录已改用官方 v1.4.4 发行包
+# （Core 位于 libs\，且不含定制页面），脚本必然失败，因此默认跳过。
+# 只有显式传入 -DeployCustomMfa 时才执行。
+if ($DeployCustomMfa) {
+    & $mfaStopStatusPatch -MfaRoot $MfaRoot
+}
 
 # Every Agent child launched by this MFA process inherits the same session id.
 # The ALAS conflict guard uses it to allow cleanup only after a first warning
