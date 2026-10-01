@@ -1,5 +1,15 @@
 # 变更记录
 
+## 2026-10-01（协力曲目选择、结算判定读取与两处流程修复）
+
+- 协力新增「歌曲选择」选项（`CooperativeSongChoice`，默认「不指定歌曲」），可选「随机选曲」与「当前曲目」；后两者只在本次任务第一轮于选曲页停留 10 秒，给玩家筛选要打的曲目范围。`resource/pipeline/cooperative_live.json` 增加 `CooperativeSongChoiceConfigure` 节点，三个按钮坐标按雷电 1280×720 真机截图标定：随机选曲位于不指定歌曲正上方 84px、左边缘对齐，确定在右下。
+- 协力结算首次读取判定数字：新增 `CooperativeResultParser`，按 11 张真实协力结算帧投影标定的面板偏移（整体下移约 29px、左移约 18px）复用单人 `FIELDS` 与分类校验逻辑；`collect_result` 在推进 PGGBM 三步节拍前尽力单帧读取一次，成功记录 perfect/great/good/bad/miss/fast/slow/total，失败记录 `unreadable`。协力结算有固定的三步推进节拍，读取异常不得拖慢或打断它，因此任何失败都返回 None。此前协力识别到 PGGBM 后直接推进返回，日志与结果 JSON 从未包含判定真值。
+- 修复协力关闭游戏弹窗后反复按返回：主页「要关闭游戏吗」确认框点「取消」后按「已到主页」收尾，不再当作剧情页跳过本帧返回键。旧行为会形成「按返回 → 弹窗 → 点取消 → 再按返回」的死循环，直到结算导航超时；命中该弹窗本身就是已回到主页的铁证。
+- 修复协力在成员加载页确认最终封面并按错误谱面开演：新增 `resource/image/cooperative/member_loading_icon.png` 与 `is_member_loading_screen()`，在 `FinalCoverResolver.observe()` 入口否决加载页候选，一处同时覆盖转场预确认与正常观察两条路径。判据是等待界面左下角的表情图标，必须全图搜索——玩家点开表情面板时图标会上移到中左位置，但图标存在即代表仍未到封面页；真封面页先整屏变黑再显示封面，4 张真机封面帧实测匹配分仅 0.31–0.34，阈值取 0.90。
+- 同步 Bestdori 曲库至 822 首：新增 10005、219 与 812–823 的 Hard/Expert/Special 谱面，以及 773–804 等曲目的国服封面。
+- `scripts/launch-mfa.ps1` 适配 v1.4.4 主程序改名：优先使用 `MaaBanGDream.exe` 并保留 `MFAAvalonia.exe` 回退，进程枚举与同目录判定同步覆盖两个名字；定制 MFAAvalonia 停止状态补丁改为只在显式传入 `-DeployCustomMfa` 时执行——当前开发运行目录已改用官方发行包，Core 位于 `libs\` 且不含定制页面，补丁必然失败。
+- 验证：`scripts/verify.ps1` 全量 1349 passed / 11 skipped，含固定 Python/MaaFw 运行时检查、编译检查与差异检查。上述协力改动尚未在真机复验。
+
 ## 2026-09-29（Fes 离线候选，未验收）
 
 - 新增「团队演出 Fes」任务：interface.json 注册任务与难度/次数/诊断选项，`resource/pipeline/fes_live.json` 复用进程冲突守卫、主页恢复、流速门禁和结算上报链路；新增 `agent/realtime/fes_action.py`，演奏委托 `RealtimeProfilePlay`（`run_mode=fes`，录像前缀 `fes`）。次数 0–999、0 为无限；只有 Easy/Normal/Hard/Expert 四档难度，没有 Special。v1 只支持自动匹配入房（不创建/加入私人房间）：匹配中等待房间满员后自动进入最终确认页，OCR 点「准备完」后等全员准备或 30 秒倒计时自动开演；活动入口与多轮回主页后的重导航均按 OCR 文本「团队演出」识别。PGGBM 判定页与结算页复用既有 `collect_result` 推进。难度行、准备完、中继页 OK 与设定齿轮坐标按雷电 1280×720 真机录像实测校准。
