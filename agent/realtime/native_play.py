@@ -26,6 +26,13 @@ TOUCH_Y = 590.0
 PHOTOGATE_LATENCY_MS = 190.0
 _STARTUP_TIMING_MIN_MS = 8.0
 _STARTUP_TIMING_MAX_MS = 60.0
+# 开打初期的 drift 离群只打印告警，不参与门禁、修正或取消：正常局 drift_p95
+# 在 5–17ms，设备侧触控下发整段变慢时会冲到 100ms+，音符集体晚到并很快耗尽
+# 生命。等到收尾的 native_timing 行再发现，这一局已经无法挽回。
+_EARLY_DRIFT_WINDOW_S = 12.0
+_EARLY_DRIFT_MIN_EXECUTED = 50
+_EARLY_DRIFT_P95_WARN_MS = 60.0
+_EARLY_DRIFT_MAX_WARN_MS = 120.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -1128,6 +1135,7 @@ class NativeMinitouchBackend:
         self._session_report: dict[str, object] = {}
         self._session_terminal = threading.Event()
         self._final_chunk_published = False
+        self._early_drift_warned = False
 
     @property
     def active(self) -> bool:
@@ -2131,7 +2139,57 @@ class NativeMinitouchBackend:
         self._session_report = dict(self._session.report())
         if self._session_state in {"finished", "cancelled", "failed"}:
             self._session_terminal.set()
+        self._maybe_warn_early_drift()
         return self._session_state
+
+    def _maybe_warn_early_drift(self) -> None:
+        """开打初期 drift 离群时立刻打印告警，只观测不改变控制流。
+
+        读的是与收尾 native_timing 行同一份会话快照，两处数值可直接对账。
+        本方法在任何异常下都必须保持沉默：实时派发路径不接受观测代码抛错，
+        也不允许它影响门禁、速率修正或取消判定。
+        """
+        if getattr(self, "_early_drift_warned", False):
+            return
+        try:
+            if self._session_state != "running":
+                return
+            anchor_s = self._first_action_anchor_s
+            if anchor_s is None:
+                return
+            elapsed_s = self._clock() - float(anchor_s)
+            if elapsed_s < 0.0 or elapsed_s > _EARLY_DRIFT_WINDOW_S:
+                return
+            # 样本太少时百分位本身不稳，不足以判定设备侧变慢。
+            executed = int(self._session_report.get("executed", 0) or 0)
+            if executed < _EARLY_DRIFT_MIN_EXECUTED:
+                return
+            drift_p95 = self._session_report.get("drift_p95_ms")
+            drift_max = self._session_report.get("drift_max_ms")
+            p95 = float(drift_p95) if drift_p95 is not None else None
+            peak = float(drift_max) if drift_max is not None else None
+            if not (
+                (p95 is not None and p95 > _EARLY_DRIFT_P95_WARN_MS)
+                or (peak is not None and peak > _EARLY_DRIFT_MAX_WARN_MS)
+            ):
+                return
+            self._early_drift_warned = True
+            print(
+                "NativeMinitouch drift_early_warning "
+                f"run_id={self._run_id} elapsed_s={elapsed_s:.2f} "
+                f"drift_p95_ms={drift_p95} drift_max_ms={drift_max} "
+                f"executed={executed} "
+                f"planned={self._session_report.get('planned')} "
+                f"underflows={self._session_report.get('underflows')} "
+                f"threshold_p95_ms={_EARLY_DRIFT_P95_WARN_MS} "
+                f"threshold_max_ms={_EARLY_DRIFT_MAX_WARN_MS} "
+                f"clock_basis={self._clock_basis} "
+                f"clock_uncertainty_ms={self._clock_uncertainty_ms} "
+                "scope=device-execution-not-game-judgements",
+                flush=True,
+            )
+        except Exception:  # noqa: BLE001 - 观测代码不得影响实时派发
+            self._early_drift_warned = True
 
     def _finish_when_fully_published(self) -> bool:
         """最后一块已由设备完整回读后才标记 finish。"""

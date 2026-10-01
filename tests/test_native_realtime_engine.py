@@ -2582,6 +2582,145 @@ def test_native_report_rejects_absolute_drift_when_clock_uncertainty_exceeds_1ms
     assert report["timing_gate_passed"] is False
 
 
+def _early_drift_backend(
+    *,
+    elapsed_s: float,
+    executed: int,
+    drift_p95_ms: float | None,
+    drift_max_ms: float | None,
+    state: str = "running",
+):
+    """构造只带早期 drift 告警所需字段的后端，避免拉起真实会话。"""
+    backend = object.__new__(NativeMinitouchBackend)
+    backend._early_drift_warned = False
+    backend._session_state = state
+    backend._first_action_anchor_s = 100.0
+    backend._clock = lambda: 100.0 + elapsed_s
+    backend._session_report = {
+        "planned": 2002,
+        "executed": executed,
+        "underflows": 0,
+        "drift_p95_ms": drift_p95_ms,
+        "drift_max_ms": drift_max_ms,
+    }
+    backend._run_id = "early-drift"
+    backend._clock_basis = "probe-midpoint"
+    backend._clock_uncertainty_ms = 0.3
+    return backend
+
+
+def test_native_backend_warns_on_early_drift_outlier(capsys):
+    # 00:22 失败局的真实读数：其余二十余轮全部 5–17ms。
+    backend = _early_drift_backend(
+        elapsed_s=3.0,
+        executed=316,
+        drift_p95_ms=109.07,
+        drift_max_ms=138.13,
+    )
+
+    backend._maybe_warn_early_drift()
+
+    out = capsys.readouterr().out
+    assert "NativeMinitouch drift_early_warning" in out
+    assert "elapsed_s=3.00" in out
+    assert "drift_p95_ms=109.07" in out
+    assert "drift_max_ms=138.13" in out
+    assert "executed=316" in out
+    assert "scope=device-execution-not-game-judgements" in out
+
+    # 只告警一次：owner 线程每 5ms 刷一次快照，重复打印会拖慢实时派发。
+    backend._maybe_warn_early_drift()
+    assert capsys.readouterr().out == ""
+
+
+def test_native_backend_warns_when_only_peak_drift_is_out_of_range(capsys):
+    backend = _early_drift_backend(
+        elapsed_s=2.0,
+        executed=200,
+        drift_p95_ms=20.0,
+        drift_max_ms=150.0,
+    )
+
+    backend._maybe_warn_early_drift()
+
+    assert "drift_early_warning" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "elapsed_s,executed,drift_p95_ms,drift_max_ms,state",
+    [
+        (3.0, 316, 8.0, 17.5, "running"),
+        (3.0, 10, 109.07, 138.13, "running"),
+        (30.0, 316, 109.07, 138.13, "running"),
+        (3.0, 316, 109.07, 138.13, "finished"),
+        (3.0, 316, None, None, "running"),
+    ],
+)
+def test_native_backend_early_drift_warning_stays_quiet(
+    capsys, elapsed_s, executed, drift_p95_ms, drift_max_ms, state
+):
+    backend = _early_drift_backend(
+        elapsed_s=elapsed_s,
+        executed=executed,
+        drift_p95_ms=drift_p95_ms,
+        drift_max_ms=drift_max_ms,
+        state=state,
+    )
+
+    backend._maybe_warn_early_drift()
+
+    assert capsys.readouterr().out == ""
+    assert backend._early_drift_warned is False
+
+
+def test_session_snapshot_refresh_emits_early_drift_warning(capsys):
+    """告警必须挂在快照刷新上，否则真机路径永远不会触发。"""
+
+    class Session:
+        def poll(self):
+            return "running"
+
+        def report(self):
+            return {
+                "planned": 2002,
+                "executed": 316,
+                "underflows": 0,
+                "drift_p95_ms": 109.07,
+                "drift_max_ms": 138.13,
+            }
+
+    backend = object.__new__(NativeMinitouchBackend)
+    backend._early_drift_warned = False
+    backend._session = Session()
+    backend._session_state = "idle"
+    backend._session_terminal = threading.Event()
+    backend._first_action_anchor_s = 100.0
+    backend._clock = lambda: 103.0
+    backend._run_id = "snapshot-wiring"
+    backend._clock_basis = "probe-midpoint"
+    backend._clock_uncertainty_ms = 0.3
+
+    assert backend._refresh_session_snapshot() == "running"
+
+    assert "drift_early_warning" in capsys.readouterr().out
+
+
+def test_early_drift_observation_never_raises_into_realtime_path():
+    def broken_clock():
+        raise RuntimeError("clock exploded")
+
+    backend = object.__new__(NativeMinitouchBackend)
+    backend._early_drift_warned = False
+    backend._session_state = "running"
+    backend._first_action_anchor_s = 100.0
+    backend._clock = broken_clock
+    backend._session_report = {}
+
+    backend._maybe_warn_early_drift()
+
+    assert backend._early_drift_warned is True
+
+
 def test_execution_timing_preserves_signed_partial_samples_and_snapshots():
     timing = native_play_module._ExecutionTimingTrace()
     timing.observe(1, 7, 100.0, 100.0, 99.990, 105.0)
