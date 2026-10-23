@@ -1,0 +1,275 @@
+﻿[2026-10-21 06:52:09.129][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeMinitouch session_stats run_id=f36f3519-e991-4eb6-9ce5-d15aef3f0719 state=finished planned=2001 sent=2001 executed=2001 chunks=270 executed_observed=true underflows=0 release_confirmed=true publish_error=None
+[2026-10-21 06:52:09.146][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay native_timing gate_passed=False absolute_valid=False drift_p95_ms=14.943351387046278 drift_max_ms=27.07284441567026 clock_uncertainty_ms=2.7044500020565465 scope=device-execution-not-game-judgements
+[2026-10-21 06:52:09.146][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay frames=851 actions=2001 stopped=False life_abort=False life_depleted=False completed=True life_failed=False feedback_fast=0 feedback_slow=0 feedback_valid=0 feedback_ignored=8 filtered_adjacent=0 rejected_holds=0 timing_offset=80->80 tap=341 flick=10 hold=89 frame_ms_p50=200.03 frame_ms_p95=201.55 frame_ms_max=222.20 effective_fps=5.00 capture_ms_p95=6.99 capture_ms_max=26.60 frame_outliers=8 actual_speed=5.07 expected_speed=5.07 touch_recoveries=0 down_recoveries=0 stale_move_recoveries=0 touch_resets=0 input_wait_count=0 input_wait_total_ms=0.0 input_wait_max_ms=0.0 reason=已识别演奏结束并进入结算
+[2026-10-21 06:52:09.146][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeJudgement enabled=True fast_reports=0 slow_reports=0 eligible_reports=0 ignored_reports=0 requests=0 accepted_requests=0 rejected_requests=0 phase={'stopped': 1} cumulative_ms=0.0 receipts={'samples': 1749, 'median_ms': 3.8772868138039485, 'p90_ms': 11.922989549930207, 'max_ms': 25.58776192017831, 'last_ms': 1.0170173627557233} phase_holds={} waits=[]
+[2026-10-21 06:52:09.146][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay result_check=skipped
+[2026-10-21 06:52:09.148][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][竞演演出][进度][INFO] 竞演演出演奏次数：已完成 3/4
+[2026-10-21 06:52:09.368][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Monitor][op=MonitorMarkdown] 竞演演出演奏次数：已完成 3/4
+[2026-10-21 06:52:09.942][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeMinitouch session_stats run_id=3ed465e0-b0f4-4574-b929-7b4746798206 state=finished planned=2001 sent=2001 executed=2001 chunks=270 executed_observed=true underflows=0 release_confirmed=true publish_error=None
+[2026-10-21 06:52:09.963][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay native_timing gate_passed=False absolute_valid=True drift_p95_ms=21.049930597655475 drift_max_ms=32.507888827240095 clock_uncertainty_ms=0.9159000037470832 scope=device-execution-not-game-judgements
+[2026-10-21 06:52:09.963][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay frames=1014 actions=2001 stopped=False life_abort=False life_depleted=False completed=True life_failed=False feedback_fast=0 feedback_slow=0 feedback_valid=0 feedback_ignored=3 filtered_adjacent=0 rejected_holds=0 timing_offset=80->80 tap=341 flick=10 hold=89 frame_ms_p50=199.95 frame_ms_p95=202.01 frame_ms_max=207.20 effective_fps=5.00 capture_ms_p95=7.25 capture_ms_max=19.66 frame_outliers=8 actual_speed=5.07 expected_speed=5.07 touch_recoveries=0 down_recoveries=0 stale_move_recoveries=0 touch_resets=0 input_wait_count=0 input_wait_total_ms=0.0 input_wait_max_ms=0.0 reason=已识别演奏结束并进入结算
+[2026-10-21 06:52:09.963][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeJudgement enabled=True fast_reports=0 slow_reports=0 eligible_reports=0 ignored_reports=0 requests=0 accepted_requests=0 rejected_requests=0 phase={'stopped': 1} cumulative_ms=0.0 receipts={'samples': 1749, 'median_ms': 10.513846427784301, 'p90_ms': 18.583251716336235, 'max_ms': 23.63815877470188, 'last_ms': 13.307233020896092} phase_holds={} waits=[]
+[2026-10-21 06:52:09.963][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay result_check=skipped
+[2026-10-21 06:52:09.965][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][进度][INFO] 竞演演出演奏次数：已完成 3/4
+[2026-10-21 06:52:10.185][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 竞演演出演奏次数：已完成 3/4
+[2026-10-21 06:52:11.388][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:11.616][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:11.823][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:12.227][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:12.463][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:12.657][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=1
+[2026-10-21 06:52:12.678][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:13.590][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=1
+[2026-10-21 06:52:13.747][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:13.960][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:14.167][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:14.600][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:14.863][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:15.009][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=2
+[2026-10-21 06:52:15.082][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:15.986][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=2
+[2026-10-21 06:52:16.099][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:16.304][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:16.523][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:17.041][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:17.289][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:17.402][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=3
+[2026-10-21 06:52:17.494][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:18.390][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=3
+[2026-10-21 06:52:18.490][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:18.694][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:18.913][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:19.460][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:19.720][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:19.780][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=4
+[2026-10-21 06:52:19.937][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:20.832][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=4
+[2026-10-21 06:52:20.865][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:21.071][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:21.296][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:21.894][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:22.117][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:22.161][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=5
+[2026-10-21 06:52:22.328][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:23.227][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=5
+[2026-10-21 06:52:23.230][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:23.430][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:23.617][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:24.316][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:24.531][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=6
+[2026-10-21 06:52:24.544][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:24.743][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:25.609][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:25.617][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=6
+[2026-10-21 06:52:25.798][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:26.016][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:26.769][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:26.948][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=7
+[2026-10-21 06:52:27.012][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:27.214][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:28.043][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:28.090][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=7
+[2026-10-21 06:52:28.247][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:28.454][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:29.205][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:29.443][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:29.649][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:29.786][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] ResultNavigation state=story action=AutoLiveStorySkipConfirmLarge
+[2026-10-21 06:52:29.787][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=8
+[2026-10-21 06:52:30.591][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=8
+[2026-10-21 06:52:30.889][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:31.118][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:31.351][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:31.668][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:31.930][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:32.147][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:32.814][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=9
+[2026-10-21 06:52:33.438][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] ResultNavigation state=story action=AutoLiveStorySkipConfirmLarge
+[2026-10-21 06:52:33.439][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=9
+[2026-10-21 06:52:34.278][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=home action=open-live-for-next-round
+[2026-10-21 06:52:34.485][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-before-back point=1279,719
+[2026-10-21 06:52:34.714][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=back phase=post-score key=4
+[2026-10-21 06:52:34.927][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusResult action=animation-skip phase=post-score-after-back point=1279,719
+[2026-10-21 06:52:36.421][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=post-score action=corner-back-corner-recognise attempt=10
+[2026-10-21 06:52:37.400][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=live-select action=open-versus-for-next-round
+[2026-10-21 06:52:37.960][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=home action=open-live-for-next-round
+[2026-10-21 06:52:38.960][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive state=room-selection reentry_from=home confirmed=true
+[2026-10-21 06:52:38.960][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive round=4/4 reuse_room=false
+[2026-10-21 06:52:39.094][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive select_room reached_selection target=free actual=free elapsed=0.12s
+[2026-10-21 06:52:39.094][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive select_room ready_to_confirm target=free swipes=0 elapsed=0.12s
+[2026-10-21 06:52:40.876][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive room_entry=confirmed marker=known-lobby
+[2026-10-21 06:52:40.876][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive select_room room_entry_confirmed elapsed=1.91s
+[2026-10-21 06:52:40.906][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=live-select action=open-versus-for-next-round
+[2026-10-21 06:52:42.463][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive state=room-selection reentry_from=home confirmed=true
+[2026-10-21 06:52:42.464][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive round=4/4 reuse_room=false
+[2026-10-21 06:52:42.581][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive select_room reached_selection target=free actual=free elapsed=0.11s
+[2026-10-21 06:52:42.581][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive select_room ready_to_confirm target=free swipes=0 elapsed=0.11s
+[2026-10-21 06:52:45.303][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive song_choice=current
+[2026-10-21 06:52:55.240][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive room_entry=reclick attempt=1/2
+[2026-10-21 06:52:57.353][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeDifficultySelect requested=Expert candidate=Expert target=(852, 575) attempt=1/3 recognized=Expert
+[2026-10-21 06:52:57.511][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeDifficultySelect identity_read attempt=1/2 song=unknown song_level=26 song_title='アスノヨゾラ哨戒班' chart_preflight=confirmed local chart by song title
+[2026-10-21 06:52:57.511][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeDifficultySelect requested=Expert effective=Expert song=unknown method=unknown song_level=26 song_title='アスノヨゾラ哨戒班' title_confidence=0.9917331139246622 chart_preflight=confirmed local chart by song title
+[2026-10-21 06:52:57.587][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimePerformanceSettingsGate enabled=false skipped=true difficulty=Expert expected=5.07 source=configured-values profile=expert-20261004064704.json
+[2026-10-21 06:52:57.587][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimePerformanceSettingsGate settings_dialog=skipped source=configured-values difficulty=Expert expected=5.07 profile=expert-20261004064704.json
+[2026-10-21 06:52:57.588][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimePerformanceSettingsGate preparation_image=cached reason=configured-values
+[2026-10-21 06:52:57.588][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimePerformanceSettingsGate native_prearm=deferred reason=configured-values
+[2026-10-21 06:52:57.589][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive performance_mode=off confirmed=true reused_preparation_image=true
+[2026-10-21 06:52:57.590][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive ready_click attempt=1 reused_preparation_image=true
+[2026-10-21 06:52:58.227][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive ready_delivery outcome=button-gone elapsed_ms=31.0 timeout_s=2.000
+[2026-10-21 06:52:58.228][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive ready=confirmed attempt=1 delivery=button-gone
+[2026-10-21 06:52:58.228][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] FinalCover member_loading_guard=enabled
+[2026-10-21 06:53:05.223][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive ready_transition outcome=black elapsed_ms=7000.0 timeout_s=60.000
+[2026-10-21 06:53:05.223][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] VersusLive ready=true requested_difficulty=Expert effective_difficulty=Expert speed_gate=verified
+[2026-10-21 06:53:05.273][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay cooperative_member_loading_guard_enabled=True source=task_snapshot
+[2026-10-21 06:53:05.344][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeCooperativeJitter run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 dropped=2 singles=578
+[2026-10-21 06:53:05.344][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay chart_prediction=on bestdori_song_id=66 difficulty=expert song=unknown
+[2026-10-21 06:53:05.370][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay diagnostics=<workspace>\debug\recordings\versus-20261021-065305-344758 mode=trace-only
+[2026-10-21 06:53:05.371][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] FinalCover member_loading_guard=enabled
+[2026-10-21 06:53:07.394][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeFinalCover confirmed=true bestdori_song_id=66 frames=22
+[2026-10-21 06:53:07.402][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive room_entry=reclick attempt=2/2
+[2026-10-21 06:53:07.469][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeCooperativeJitter run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 dropped=2 singles=578
+[2026-10-21 06:53:10.256][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeMinitouch device_ready max=720x1280 contacts=10
+[2026-10-21 06:53:10.287][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativePrearm prepared run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 chart=<workspace>\debug\jittered-charts\fe630749-9ff7-4f85-9fcd-c7107da3db53.json ttl_s=30
+[2026-10-21 06:53:10.288][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay profile=expert-20261004064704.json actual_speed=5.07 expected_speed=5.07
+[2026-10-21 06:53:10.289][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativePrearm consumed run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 chart=<workspace>\debug\jittered-charts\fe630749-9ff7-4f85-9fcd-c7107da3db53.json
+[2026-10-21 06:53:10.290][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay native_prearmed=consumed chart=<workspace>\debug\jittered-charts\fe630749-9ff7-4f85-9fcd-c7107da3db53.json timing_offset_ms=80
+[2026-10-21 06:53:10.432][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay life_policy rehearsal=False continue_after_depleted=True numeric_monitor=True playfield_monitor=False
+[2026-10-21 06:53:20.092][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeMinitouch started run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 anchor_s=161988.651582 planned=2646 first_read_delay_ms=1.000 photogate={'photogate_mode': 'cooperative-playfield-confirmed', 'photogate_playfield_evidence': 'life-and-judgement-line', 'photogate_latency_ms': 190.0, 'photogate_wait_ms': 9643.321999988984, 'photogate_playfield_wait_ms': 2726.8584999837913, 'photogate_playfield_waited_frames': 160, 'photogate_playfield_loss_events': 0, 'photogate_stable_ms': 124.90059999981895, 'photogate_grace_ms': 500.0, 'photogate_life_peak': None, 'photogate_life_min': None, 'photogate_waited_frames': 7, 'photogate_ignored_prelude_events': 0, 'photogate_trigger_score': 5.539092548076925, 'photogate_trigger_source': 'interpolated-threshold-crossing', 'photogate_last_change_score': 5.539092548076925, 'photogate_prepare_popup_enabled': True, 'photogate_spatial_transition_guard': False, 'photogate_broad_change_policy': 'column-mean', 'photogate_broad_pixel_change_min': 45.0, 'photogate_broad_column_fraction': 0.35, 'photogate_popup_min_panel_fill': None, 'photogate_early_start': {'enabled': True, 'eligible': False, 'rejected_reason': 'unsupported-first-group', 'disabled': False, 'environment': {'resolution': (1280, 720), 'dpi': 240, 'game_fps': 60, 'render_quality': 'standard', 'note_speed': 5.07, 'note_skin_type': 1, 'tap_effect': 4, 'judgement_assist_effect': False, 'engine': 'native'}, 'first_group': {'supported': False, 'reason': 'unsupported-first-group', 'first_due_s': 2.5945945945945947, 'next_group_gap_s': 0.16216216216216184, 'group': [{'kind': 'tap', 'lane': 5, 'note_index': 0, 'due_s': 2.5945945945945947, 'flick_direction': None}]}, 'environment_source': 'accepted Profile declaration validated against task signature; not live skin/effect measurement', 'calibration': {'version': 'upper-200-paired-flick-v1', 'line_y': 200.0, 'scan_band': [100, 300], 'delay_s': 0.8825188209566076, 'delay_envelope_s': [0.8763108744575937, 0.8887267674556213], 'half_width_s': 0.00629485775, 'target_semantics': 'photogate-return-before-profile', 'measured_scope': 'two recorded environments; speed 5.0; first outer-lane paired FLICK', 'evidence_id': 'atoz-upper-gate-20261018/fixed-line-200; atoz-start-candidate-20261018/prototype', 'uncertainty': 'recorded envelope only; sparse interpolation and live capture delay are additional', 'note_speed': 5.07}, 'trigger': None}, 'photogate_life_fallback_enabled': False, 'photogate_life_trigger': None, 'photogate_low_confidence_trigger': None, 'photogate_prepare_popup_frames': 215, 'photogate_prepare_popup_blocked_events': 2, 'photogate_events': [{'event': 'playfield-visible', 'elapsed_ms': 2726.8584999837913, 'change_score': 0.0}, {'event': 'prepare-popup-visible', 'elapsed_ms': 2726.8584999837913, 'change_score': 0.0}, {'event': 'prepare-popup-gone', 'elapsed_ms': 6359.929999976885, 'change_score': 0.0}, {'event': 'stable', 'elapsed_ms': 6501.615099987248, 'change_score': 0.0}, {'event': 'trigger', 'elapsed_ms': 9643.321999988984, 'change_score': 5.539092548076925}]}
+[2026-10-21 06:53:28.277][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr] Traceback (most recent call last):
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 2021, in run
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     ).run()
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]       ^^^^^
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 1702, in run
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     success = self.run_attempt(reuse_room=reuse_room)
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 1520, in run_attempt
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     self.enter_room()
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 781, in enter_room
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     self.select_room_type()
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 723, in select_room_type
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     self.verify_room_entry(
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\versus_action.py", line 777, in verify_room_entry
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr]     raise RuntimeError(failure_reason)
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=StdErr] RuntimeError：点击「确定」后仍停留在房间选择页，未进入房间
+[2026-10-21 06:53:28.278][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][流程][ERROR] 竞演演出失败：RuntimeError：点击「确定」后仍停留在房间选择页，未进入房间
+[2026-10-21 06:53:28.285][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] ❌ 竞演演出未完成，请查看本次任务的明确原因
+[2026-10-21 06:53:29.524][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][结束][ERROR] 任务失败，已完成 3/4：竞演演出失败：RuntimeError：点击「确定」后仍停留在房间选择页，未进入房间
+[2026-10-21 06:53:29.746][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 任务失败，已完成 3/4：竞演演出失败：RuntimeError：点击「确定」后仍停留在房间选择页，未进入房间
+[2026-10-21 06:53:31.774][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 队列任务完成（异步）。
+[2026-10-21 06:53:31.774][ERR] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] 任务执行失败：⚔️ 竞演演出
+[2026-10-21 06:53:31.774][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=StopTask] 停止前状态：FAILED
+[2026-10-21 06:53:31.779][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=StopTask] >>> 任务 停止maafw任务开始（异步）。
+[2026-10-21 06:53:31.781][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorLog] 任务运行失败！
+[2026-10-21 06:54:05.857][INF] [cfg=Default][inst=配置 1/default][src=UI][op=StartTask] 用户操作：启动任务 | controller=Adb, resource=Bilibili, device=Data_V5-MuMuPlayer12 v5（127.0.0.1:16416), selectedTasks=1 [VersusLive]
+[2026-10-21 06:54:05.867][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] 准备执行任务队列：任务数量=1
+[2026-10-21 06:54:05.869][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] [任务管线合并] 任务#1 名称=[⚔️ 竞演演出] 入口=[VersusLive] 参数=[
+[2026-10-21 06:54:05.933][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动任务开始（异步）。
+[2026-10-21 06:54:05.933][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动任务完成（异步）。
+[2026-10-21 06:54:05.972][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加开始脚本开始（异步）。
+[2026-10-21 06:54:05.972][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加开始脚本完成（异步）。
+[2026-10-21 06:54:05.972][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 截图测试开始（异步）。
+[2026-10-21 06:54:05.986][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 截图测试完成（异步）。
+[2026-10-21 06:54:05.986][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorLog] 截图耗时：6ms(EmulatorExtras)
+[2026-10-21 06:54:05.988][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorLog] 开始任务：⚔️ 竞演演出
+[2026-10-21 06:54:05.989][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 队列任务开始（异步）。
+[2026-10-21 06:54:06.249][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 正在启动竞演演出任务
+[2026-10-21 06:54:06.254][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 竞演演出启动检查已开始
+[2026-10-21 06:54:07.518][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][任务前检查][进程互斥][SUCCESS] 未检测到其他程序占用
+[2026-10-21 06:54:08.918][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][游戏启动][进程][INFO] 游戏进程已运行，当前位于游戏前台
+[2026-10-21 06:54:09.603][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][游戏启动][登录][SUCCESS] 已识别主页，状态：已登录
+[2026-10-21 06:54:10.833][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'unspecified'}
+[2026-10-21 06:54:11.593][INF] [cfg=Default][inst=配置 2/745bb6c4][src=UI][op=SwitchInstance] 实例切换完成
+[2026-10-21 06:54:12.294][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'unspecified'}
+[2026-10-21 06:54:13.280][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'unspecified'}
+[2026-10-21 06:54:14.505][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'unspecified'}
+[2026-10-21 06:54:15.730][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'unspecified'}
+[2026-10-21 06:54:16.953][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'current'}
+[2026-10-21 06:54:18.177][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': False, 'song_choice': 'current'}
+[2026-10-21 06:54:19.402][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive configured={'entry_method': 'confirm', 'room_type': 'free', 'difficulty': 'Expert', 'count': 1, 'post_live_action': 'exit', 'member_exit_policy': 'fail', 'max_reconnects': 3, 'debug_recording': False, 'diagnostic_trace': True, 'disconnect_jump_enabled': True, 'song_choice': 'current'}
+[2026-10-21 06:54:20.627][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeGameSpeedSettingsGate enabled=false skipped=true
+[2026-10-21 06:54:22.291][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 正在点击主页右下角“演出”
+[2026-10-21 06:54:22.500][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 已点击“演出”，正在寻找竞演演出入口
+[2026-10-21 06:54:24.163][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][界面导航][选择演出][INFO] 模板识别到“竞演演出”（x=940, y=200, w=300, h=172）
+[2026-10-21 06:54:25.799][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][界面导航][选择演出][INFO] 模板识别到“竞演演出”（x=940, y=200, w=300, h=172）
+[2026-10-21 06:54:28.249][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] LiveBoostGate current=3 target=3 corrected=false verified=true
+[2026-10-21 06:54:30.107][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 正在按设定次数执行竞演演出
+[2026-10-21 06:54:30.180][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][进度][INFO] 竞演演出演奏次数：当前 1/1，已完成 0/1
+[2026-10-21 06:54:30.403][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 竞演演出演奏次数：当前 1/1，已完成 0/1
+[2026-10-21 06:54:31.406][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive room_recovery_trial=True
+[2026-10-21 06:54:31.406][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive versus_member_loading_guard_enabled=True source=task_snapshot
+[2026-10-21 06:54:31.414][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive round=1/1 reuse_room=false
+[2026-10-21 06:54:31.537][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive select_room reached_selection target=free actual=free elapsed=0.12s
+[2026-10-21 06:54:31.537][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive select_room ready_to_confirm target=free swipes=0 elapsed=0.12s
+[2026-10-21 06:54:33.280][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive room_entry=confirmed marker=known-lobby
+[2026-10-21 06:54:33.280][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive select_room room_entry_confirmed elapsed=1.86s
+[2026-10-21 06:54:55.241][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive song_choice_pause seconds=10.0 choice=current
+[2026-10-21 06:54:57.794][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeMinitouch session_stats run_id=fe630749-9ff7-4f85-9fcd-c7107da3db53 state=finished planned=2646 sent=2646 executed=2646 chunks=291 executed_observed=true underflows=0 release_confirmed=true publish_error=None
+[2026-10-21 06:54:57.813][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay native_timing gate_passed=False absolute_valid=True drift_p95_ms=16.063340328400955 drift_max_ms=29.840344184776768 clock_uncertainty_ms=0.6643000087933615 scope=device-execution-not-game-judgements
+[2026-10-21 06:54:57.813][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay frames=1067 actions=2646 stopped=False life_abort=False life_depleted=False completed=True life_failed=False feedback_fast=0 feedback_slow=0 feedback_valid=0 feedback_ignored=6 filtered_adjacent=0 rejected_holds=0 timing_offset=80->80 tap=552 flick=25 hold=41 frame_ms_p50=200.00 frame_ms_p95=201.74 frame_ms_max=235.63 effective_fps=5.00 capture_ms_p95=6.73 capture_ms_max=20.59 frame_outliers=8 actual_speed=5.07 expected_speed=5.07 touch_recoveries=0 down_recoveries=0 stale_move_recoveries=0 touch_resets=0 input_wait_count=0 input_wait_total_ms=0.0 input_wait_max_ms=0.0 reason=已识别演奏结束并进入结算
+[2026-10-21 06:54:57.813][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] NativeJudgement enabled=True fast_reports=0 slow_reports=0 eligible_reports=0 ignored_reports=0 requests=0 accepted_requests=0 rejected_requests=0 phase={'stopped': 1} cumulative_ms=0.0 receipts={'samples': 2059, 'median_ms': 3.1483048223890364, 'p90_ms': 8.197259361622855, 'max_ms': 22.17641290917527, 'last_ms': 4.735483729746193} phase_holds={} waits=[]
+[2026-10-21 06:54:57.813][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] RealtimeProfilePlay result_check=skipped
+[2026-10-21 06:54:57.814][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][竞演演出][进度][INFO] 竞演演出演奏次数：已完成 4/4
+[2026-10-21 06:54:58.037][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Monitor][op=MonitorMarkdown] 竞演演出演奏次数：已完成 4/4
+[2026-10-21 06:55:00.436][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][游戏启动][进程][INFO] 游戏进程已运行，当前位于游戏前台
+[2026-10-21 06:55:05.966][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive song_choice=current
+[2026-10-21 06:55:16.304][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeDifficultySelect requested=Expert candidate=Expert target=(852, 575) attempt=1/3 recognized=Expert
+[2026-10-21 06:55:16.471][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeDifficultySelect identity_read attempt=1/2 song=unknown song_level=25 song_title="すきっちゅーの'!'" chart_preflight=confirmed local chart by song title
+[2026-10-21 06:55:16.471][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeDifficultySelect requested=Expert effective=Expert song=unknown method=unknown song_level=25 song_title="すきっちゅーの'!'" title_confidence=0.8904683366417885 chart_preflight=confirmed local chart by song title
+[2026-10-21 06:55:16.546][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimePerformanceSettingsGate enabled=false skipped=true difficulty=Expert expected=5.07 source=configured-values profile=expert-20261004064704.json
+[2026-10-21 06:55:16.546][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimePerformanceSettingsGate settings_dialog=skipped source=configured-values difficulty=Expert expected=5.07 profile=expert-20261004064704.json
+[2026-10-21 06:55:16.547][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimePerformanceSettingsGate preparation_image=cached reason=configured-values
+[2026-10-21 06:55:16.547][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimePerformanceSettingsGate native_prearm=deferred reason=configured-values
+[2026-10-21 06:55:16.548][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive performance_mode=off confirmed=true reused_preparation_image=true
+[2026-10-21 06:55:16.549][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive ready_click attempt=1 reused_preparation_image=true
+[2026-10-21 06:55:17.188][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive ready_delivery outcome=button-gone elapsed_ms=31.0 timeout_s=2.000
+[2026-10-21 06:55:17.188][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive ready=confirmed attempt=1 delivery=button-gone
+[2026-10-21 06:55:17.188][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] FinalCover member_loading_guard=enabled
+[2026-10-21 06:55:17.792][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][娓告垙鍚姩][涓婚〉鎭㈠][INFO] 璇嗗埆骞跺鐞嗗畨鍏ㄥ墽鎯呰妭鐐癸細AutoLiveStorySkipConfirmLarge
+[2026-10-21 06:55:20.330][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][游戏启动][弹窗][INFO] 检测到模态弹窗，已点击取消：QuitConfirmCancel
+[2026-10-21 06:55:21.571][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][游戏启动][登录][SUCCESS] 已识别主页，状态：已登录
+[2026-10-21 06:55:22.800][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][竞演演出][结束][SUCCESS] 竞演演出任务成功：已完成 4/4
+[2026-10-21 06:55:23.029][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Monitor][op=MonitorMarkdown] 竞演演出任务成功：已完成 4/4
+[2026-10-21 06:55:24.835][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive ready_transition outcome=black elapsed_ms=7656.0 timeout_s=60.000
+[2026-10-21 06:55:24.835][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] VersusLive ready=true requested_difficulty=Expert effective_difficulty=Expert speed_gate=verified
+[2026-10-21 06:55:24.877][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay cooperative_member_loading_guard_enabled=True source=task_snapshot
+[2026-10-21 06:55:24.937][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeCooperativeJitter run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b dropped=1 singles=378
+[2026-10-21 06:55:24.937][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay chart_prediction=on bestdori_song_id=640 difficulty=expert song=unknown
+[2026-10-21 06:55:24.961][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay diagnostics=<workspace>\debug\recordings\versus-20261021-065524-936631 mode=trace-only
+[2026-10-21 06:55:24.961][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] FinalCover member_loading_guard=enabled
+[2026-10-21 06:55:25.038][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Worker][op=ExecuteTaskQueue] >>> 任务 队列任务完成（异步）。
+[2026-10-21 06:55:25.043][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加结束脚本开始（异步）。
+[2026-10-21 06:55:25.043][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加结束脚本完成（异步）。
+[2026-10-21 06:55:25.043][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Worker][op=StopTask] 停止前状态：SUCCEEDED
+[2026-10-21 06:55:25.043][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Worker][op=StopTask] >>> 任务 停止maafw任务开始（异步）。
+[2026-10-21 06:55:25.046][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Monitor][op=MonitorLog] 任务已全部完成！
+[2026-10-21 06:55:27.975][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeFinalCover confirmed=true bestdori_song_id=640 frames=26
+[2026-10-21 06:55:28.048][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeCooperativeJitter run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b dropped=1 singles=378
+[2026-10-21 06:55:30.772][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeMinitouch device_ready max=720x1280 contacts=10
+[2026-10-21 06:55:30.804][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativePrearm prepared run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b chart=<workspace>\debug\jittered-charts\5611db20-0ed1-4360-9b18-b24e73fe5b9b.json ttl_s=30
+[2026-10-21 06:55:30.805][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay profile=expert-20261004064704.json actual_speed=5.07 expected_speed=5.07
+[2026-10-21 06:55:30.806][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativePrearm consumed run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b chart=<workspace>\debug\jittered-charts\5611db20-0ed1-4360-9b18-b24e73fe5b9b.json
+[2026-10-21 06:55:30.807][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay native_prearmed=consumed chart=<workspace>\debug\jittered-charts\5611db20-0ed1-4360-9b18-b24e73fe5b9b.json timing_offset_ms=80
+[2026-10-21 06:55:30.977][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay life_policy rehearsal=False continue_after_depleted=True numeric_monitor=True playfield_monitor=False
+[2026-10-21 06:55:37.904][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeMinitouch started run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b anchor_s=162126.463464 planned=2413 first_read_delay_ms=1.000 photogate={'photogate_mode': 'cooperative-playfield-confirmed', 'photogate_playfield_evidence': 'life-and-judgement-line', 'photogate_latency_ms': 190.0, 'photogate_wait_ms': 6910.108800017042, 'photogate_playfield_wait_ms': 2509.6121999958996, 'photogate_playfield_waited_frames': 147, 'photogate_playfield_loss_events': 0, 'photogate_stable_ms': 133.264500007499, 'photogate_grace_ms': 500.0, 'photogate_life_peak': None, 'photogate_life_min': None, 'photogate_waited_frames': 8, 'photogate_ignored_prelude_events': 0, 'photogate_trigger_score': 5.908774038461538, 'photogate_trigger_source': 'interpolated-threshold-crossing', 'photogate_last_change_score': 5.908774038461538, 'photogate_prepare_popup_enabled': True, 'photogate_spatial_transition_guard': False, 'photogate_broad_change_policy': 'column-mean', 'photogate_broad_pixel_change_min': 45.0, 'photogate_broad_column_fraction': 0.35, 'photogate_popup_min_panel_fill': None, 'photogate_early_start': {'enabled': True, 'eligible': False, 'rejected_reason': 'unsupported-first-group', 'disabled': False, 'environment': {'resolution': (1280, 720), 'dpi': 240, 'game_fps': 60, 'render_quality': 'standard', 'note_speed': 5.07, 'note_skin_type': 1, 'tap_effect': 4, 'judgement_assist_effect': False, 'engine': 'native'}, 'first_group': {'supported': False, 'reason': 'unsupported-first-group', 'first_due_s': 2.5714285714285716, 'next_group_gap_s': 0.17142857142857126, 'group': [{'kind': 'tap', 'lane': 0, 'note_index': 0, 'due_s': 2.5714285714285716, 'flick_direction': None}]}, 'environment_source': 'accepted Profile declaration validated against task signature; not live skin/effect measurement', 'calibration': {'version': 'upper-200-paired-flick-v1', 'line_y': 200.0, 'scan_band': [100, 300], 'delay_s': 0.8825188209566076, 'delay_envelope_s': [0.8763108744575937, 0.8887267674556213], 'half_width_s': 0.00629485775, 'target_semantics': 'photogate-return-before-profile', 'measured_scope': 'two recorded environments; speed 5.0; first outer-lane paired FLICK', 'evidence_id': 'atoz-upper-gate-20261018/fixed-line-200; atoz-start-candidate-20261018/prototype', 'uncertainty': 'recorded envelope only; sparse interpolation and live capture delay are additional', 'note_speed': 5.07}, 'trigger': None}, 'photogate_life_fallback_enabled': False, 'photogate_life_trigger': None, 'photogate_low_confidence_trigger': None, 'photogate_prepare_popup_frames': 65, 'photogate_prepare_popup_blocked_events': 2, 'photogate_events': [{'event': 'playfield-visible', 'elapsed_ms': 2509.6121999958996, 'change_score': 0.0}, {'event': 'prepare-popup-visible', 'elapsed_ms': 2509.6121999958996, 'change_score': 0.0}, {'event': 'prepare-popup-gone', 'elapsed_ms': 3624.8876999889035, 'change_score': 0.0}, {'event': 'stable', 'elapsed_ms': 3776.0065000038594, 'change_score': 0.0}, {'event': 'trigger', 'elapsed_ms': 6910.108800017042, 'change_score': 5.908774038461538}]}
+[2026-10-21 06:57:18.215][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeMinitouch session_stats run_id=5611db20-0ed1-4360-9b18-b24e73fe5b9b state=finished planned=2413 sent=2413 executed=2413 chunks=297 executed_observed=true underflows=0 release_confirmed=true publish_error=None
+[2026-10-21 06:57:18.235][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay native_timing gate_passed=False absolute_valid=True drift_p95_ms=14.028361154487357 drift_max_ms=20.21425517159514 clock_uncertainty_ms=0.5856000061612576 scope=device-execution-not-game-judgements
+[2026-10-21 06:57:18.235][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay frames=916 actions=2413 stopped=False life_abort=False life_depleted=False completed=True life_failed=False feedback_fast=0 feedback_slow=0 feedback_valid=0 feedback_ignored=5 filtered_adjacent=0 rejected_holds=0 timing_offset=80->80 tap=338 flick=39 hold=89 frame_ms_p50=199.99 frame_ms_p95=201.50 frame_ms_max=207.87 effective_fps=5.00 capture_ms_p95=6.59 capture_ms_max=13.00 frame_outliers=8 actual_speed=5.07 expected_speed=5.07 touch_recoveries=0 down_recoveries=0 stale_move_recoveries=0 touch_resets=0 input_wait_count=0 input_wait_total_ms=0.0 input_wait_max_ms=0.0 reason=已识别演奏结束并进入结算
+[2026-10-21 06:57:18.235][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] NativeJudgement enabled=True fast_reports=0 slow_reports=0 eligible_reports=0 ignored_reports=0 requests=0 accepted_requests=0 rejected_requests=0 phase={'stopped': 1} cumulative_ms=0.0 receipts={'samples': 1854, 'median_ms': 3.427260118769482, 'p90_ms': 9.326520914328285, 'max_ms': 13.335919386008754, 'last_ms': 7.876265372033231} phase_holds={} waits=[]
+[2026-10-21 06:57:18.235][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] RealtimeProfilePlay result_check=skipped
+[2026-10-21 06:57:18.237][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][进度][INFO] 竞演演出演奏次数：已完成 1/1
+[2026-10-21 06:57:18.475][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 竞演演出演奏次数：已完成 1/1
+[2026-10-21 06:57:20.860][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][游戏启动][进程][INFO] 游戏进程已运行，当前位于游戏前台
+[2026-10-21 06:57:37.655][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][娓告垙鍚姩][涓婚〉鎭㈠][INFO] 璇嗗埆骞跺鐞嗗畨鍏ㄥ墽鎯呰妭鐐癸細AutoLiveStorySkipConfirmLarge
+[2026-10-21 06:57:40.104][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][游戏启动][弹窗][INFO] 检测到模态弹窗，已点击取消：QuitConfirmCancel
+[2026-10-21 06:57:41.233][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][游戏启动][登录][SUCCESS] 已识别主页，状态：已登录
+[2026-10-21 06:57:42.476][INF] [cfg=Default][inst=配置 1/default][src=Agent][op=Stdout] [任务][竞演演出][结束][SUCCESS] 竞演演出任务成功：已完成 1/1
+[2026-10-21 06:57:42.698][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorMarkdown] 竞演演出任务成功：已完成 1/1
+[2026-10-21 06:57:44.706][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 队列任务完成（异步）。
+[2026-10-21 06:57:44.707][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加结束脚本开始（异步）。
+[2026-10-21 06:57:44.707][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=ExecuteTaskQueue] >>> 任务 启动附加结束脚本完成（异步）。
+[2026-10-21 06:57:44.707][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=StopTask] 停止前状态：SUCCEEDED
+[2026-10-21 06:57:44.707][INF] [cfg=Default][inst=配置 1/default][src=Worker][op=StopTask] >>> 任务 停止maafw任务开始（异步）。
+[2026-10-21 06:57:44.709][INF] [cfg=Default][inst=配置 1/default][src=Monitor][op=MonitorLog] 任务已全部完成！
+[2026-10-21 06:58:06.277][INF] [cfg=Default] [内存管理]任务结束，恢复手动内存清理
+[2026-10-21 06:59:03.902][INF] [cfg=Default][inst=配置 1/default][src=UI][op=SwitchInstance] 实例切换完成
+

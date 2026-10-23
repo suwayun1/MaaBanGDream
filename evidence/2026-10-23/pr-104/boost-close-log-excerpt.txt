@@ -1,0 +1,9 @@
+﻿[2026-10-23 22:40:17.880][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] LiveBoostGate current=1 target=1 corrected=false verified=true
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]     ensure_live_boost(context)
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\live_boost_gate.py", line 174, in ensure_live_boost
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]     return LiveBoostGate(context).ensure(target)
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]     self.stable(False)
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]   File "<workspace>\agent\realtime\live_boost_gate.py", line 148, in stable
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr]     raise RuntimeError("体力消耗页面或唯一选中状态未能连续稳定确认")
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=StdErr] RuntimeError：体力消耗页面或唯一选中状态未能连续稳定确认
+[2026-10-23 22:40:54.219][INF] [cfg=Default][inst=配置 2/745bb6c4][src=Agent][op=Stdout] [任务][界面导航][选择演出][ERROR] RuntimeError：体力消耗页面或唯一选中状态未能连续稳定确认

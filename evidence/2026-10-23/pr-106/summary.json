@@ -1,0 +1,80 @@
+﻿{
+  "schema_version": 2,
+  "recording_mode": "trace-only",
+  "video_enabled": false,
+  "record_worker_finalized": true,
+  "encoder_finalized": true,
+  "recorder_error": null,
+  "trace_frames": 599,
+  "dropped_trace_frames": 0,
+  "native_life_evidence_frames": 0,
+  "dropped_native_life_frames": 0,
+  "native_feedback_evidence_frames": 0,
+  "dropped_native_feedback_frames": 0,
+  "judgement_sniff_frames": 481,
+  "dropped_judgement_sniff_frames": 0,
+  "native_life_evidence_complete": true,
+  "native_feedback_evidence_complete": true,
+  "video_frames": 0,
+  "skipped_video_frames": 0,
+  "dropped_video_frames": 0,
+  "video_fps": 60,
+  "video_actual_fps": null,
+  "video_container": null,
+  "video_codec": null,
+  "video_duration_seconds": null,
+  "timestamp_duration_seconds": null,
+  "video_duration_difference_seconds": null,
+  "video_seek_verified": false,
+  "video_finalize_status": "disabled",
+  "complete_frame_evidence": true,
+  "event_screenshots": 0,
+  "checkpoint_count": 6,
+  "checkpoint_index": "checkpoints.jsonl",
+  "diagnostic_counts": {
+    "final_cover_observation": 22,
+    "gate-frame": 91
+  },
+  "phase_counts": {
+    "final-cover": 22,
+    "first-note-gate": 91,
+    "engine": 486
+  },
+  "timing_feedback": {
+    "initial_offset_ms": 80,
+    "current_offset_ms": 80,
+    "valid_samples": 0,
+    "ignored_samples": 0,
+    "ignored_reasons": {}
+  },
+  "session": {
+    "run_id": "fe630749-9ff7-4f85-9fcd-c7107da3db53",
+    "started_at": "2026-10-20T22:52:56.899705Z",
+    "mode": "versus",
+    "difficulty": "Expert",
+    "requested_difficulty": "Expert",
+    "effective_difficulty": "Expert",
+    "profile_name": "expert-20261004064704.json",
+    "song_id": "song-jacket-phash-v2-9bef40b4658b7c70",
+    "song_id_method": "song-jacket-phash-v2",
+    "song_level": 26,
+    "song_title": "アスノヨゾラ哨戒班",
+    "song_title_confidence": 0.9917331139246622,
+    "preparation_title_pending_final_cover": false,
+    "preparation_identity_pending_final_cover": false,
+    "preparation_identity_pending_reason": null,
+    "settings": {
+      "expected_note_speed": 5.07,
+      "actual_note_speed": 5.07
+    },
+    "debug_recording": false,
+    "recording_path": "debug/recordings/versus-20261021-065305-344758",
+    "final_cover": {
+      "confirmed": true,
+      "song_id": "song-jacket-phash-v2-9bef40b4658b7c70",
+      "status": "confirmed",
+      "reason": null
+    }
+  }
+}
+

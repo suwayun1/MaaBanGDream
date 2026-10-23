@@ -1,0 +1,82 @@
+﻿{
+  "schema_version": 2,
+  "recording_mode": "trace-only",
+  "video_enabled": false,
+  "record_worker_finalized": true,
+  "encoder_finalized": true,
+  "recorder_error": null,
+  "trace_frames": 452,
+  "dropped_trace_frames": 0,
+  "native_life_evidence_frames": 13,
+  "dropped_native_life_frames": 0,
+  "native_feedback_evidence_frames": 0,
+  "dropped_native_feedback_frames": 0,
+  "judgement_sniff_frames": 357,
+  "dropped_judgement_sniff_frames": 0,
+  "native_life_evidence_complete": true,
+  "native_feedback_evidence_complete": true,
+  "video_frames": 0,
+  "skipped_video_frames": 0,
+  "dropped_video_frames": 0,
+  "video_fps": 60,
+  "video_actual_fps": null,
+  "video_container": null,
+  "video_codec": null,
+  "video_duration_seconds": null,
+  "timestamp_duration_seconds": null,
+  "video_duration_difference_seconds": null,
+  "video_seek_verified": false,
+  "video_finalize_status": "disabled",
+  "complete_frame_evidence": true,
+  "event_screenshots": 14,
+  "checkpoint_count": 6,
+  "checkpoint_index": "checkpoints.jsonl",
+  "diagnostic_counts": {
+    "final_cover_observation": 26,
+    "gate-frame": 66,
+    "life_low_candidate": 1,
+    "life_terminal": 1
+  },
+  "phase_counts": {
+    "final-cover": 26,
+    "first-note-gate": 66,
+    "engine": 360
+  },
+  "timing_feedback": {
+    "initial_offset_ms": 80,
+    "current_offset_ms": 80,
+    "valid_samples": 0,
+    "ignored_samples": 0,
+    "ignored_reasons": {}
+  },
+  "session": {
+    "run_id": "03949705-f128-4294-9ea8-ecdb463e9b19",
+    "started_at": "2026-10-23T15:42:30.997229Z",
+    "mode": "versus",
+    "difficulty": "Expert",
+    "requested_difficulty": "Expert",
+    "effective_difficulty": "Expert",
+    "profile_name": "expert-20261004064704.json",
+    "song_id": "song-jacket-phash-v2-8fa0b0d7d039dd27",
+    "song_id_method": "song-jacket-phash-v2",
+    "song_level": 26,
+    "song_title": null,
+    "song_title_confidence": null,
+    "preparation_title_pending_final_cover": false,
+    "preparation_identity_pending_final_cover": false,
+    "preparation_identity_pending_reason": null,
+    "settings": {
+      "expected_note_speed": 5.07,
+      "actual_note_speed": 5.07
+    },
+    "debug_recording": false,
+    "recording_path": "debug/recordings/versus-20261023-234236-489710",
+    "final_cover": {
+      "confirmed": true,
+      "song_id": "song-jacket-phash-v2-8fa0b0d7d039dd27",
+      "status": "confirmed",
+      "reason": null
+    }
+  }
+}
+
